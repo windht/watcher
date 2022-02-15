@@ -1,46 +1,42 @@
-# Getting Started with Create React App
+# What is Watcher?
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![Demo](screenshot.png)
 
-## Available Scripts
+An API manager built for a easier use to manage and collaborate on API calls. It is also a cross-platform application powered by the web that is being wrapped using [Tauri](https://tauri.studio) framework in which you can run Watcher on Windows, MacOS, or Linux without having much trouble. Some Watcher's features/roadmap in summary are:
 
-In the project directory, you can run:
+- [x] Making Request (Of course!)
+- [x] Directory Management
+- [x] Workspace switch
+- [x] Import from swagger
+- [x] Import from more places!
+- [ ] Environment Variables Feature
+- [ ] Pre/Post request script
+- [ ] Tab Feature
+- [ ] Sync Feature
+- [ ] Flow Management
 
-### `npm start`
+Watcher is currently under heavy development. You can give your suggestions and feedback on our Discussions page. If you feel comfortable in writing code using Typescript and Rust, we highly encourage you to contribute to this project.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Installation
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+If you want to install Xplorer on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
 
-### `npm test`
+## Tech Stack
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- React
+- Mobx
+- Tauri
 
-### `npm run build`
+## Development
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+If you want to run this project in your local system, please follow this guide:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+0. We use `yarn` to manage package and run scripts.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+1. Run `yarn install` to install dependencies.
 
-### `npm run eject`
+2. Run `yarn start` to start the react app running on port 3000 by default.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+3. Follow [this guide](https://tauri.studio/en/docs/getting-started/intro/#setting-up-your-environment) to set up Tauri environment
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+4. Run `yarn tauri dev`
