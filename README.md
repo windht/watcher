@@ -8,7 +8,7 @@ An API manager built for a easier use to manage and collaborate on API calls. It
 - [x] Directory Management
 - [x] Workspace switch
 - [x] Import from swagger
-- [x] Import from more places!
+- [ ] Import from more places!
 - [ ] Environment Variables Feature
 - [ ] Pre/Post request script
 - [ ] Tab Feature
@@ -19,7 +19,7 @@ Watcher is currently under heavy development. You can give your suggestions and 
 
 ## Installation
 
-If you want to install Xplorer on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
+If you want to install Watcher on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
 
 ## Tech Stack
 
