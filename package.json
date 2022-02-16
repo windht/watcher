@@ -1,6 +1,6 @@
 {
   "name": "watcher",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
     "@chakra-ui/react": "^1.8.1",
@@ -45,7 +45,7 @@
     "@types/react-virtualized": "^9.21.16"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "react-scripts start && tauri dev",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

@@ -1,11 +1,11 @@
 [package]
-name = "app"
-version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+name = "Watcher"
+version = "0.2.0"
+description = "Watcher, API manager built for a easier use to manage and collaborate"
+authors = ["windht"]
 license = ""
 repository = ""
-default-run = "app"
+default-run = "Watcher"
 edition = "2018"
 build = "src/build.rs"
 
