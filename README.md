@@ -1,3 +1,17 @@
+<div align="center">
+<img height=150 src="src-tauri/icons/icon.png" />
+</div>
+
+<p align="center"><span><b>Watcher</b>, API manager built for a easier use to manage and collaborate.</span></p>
+
+<div align="center">
+
+[![Windows Support](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/windht/watcher/releases) [![Ubuntu Support](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/windht/watcher/releases) [![Mac Support](https://img.shields.io/badge/MACOS-adb8c5?style=for-the-badge&logo=macos&logoColor=white)](https://github.com/windht/watcher/releases)
+
+</div>
+
+---
+
 # What is Watcher?
 
 ![Demo](screenshot.png)
@@ -8,7 +22,7 @@ An API manager built for a easier use to manage and collaborate on API calls. It
 - [x] Directory Management
 - [x] Workspace switch
 - [x] Import from swagger
-- [x] Import from more places!
+- [ ] Import from more places!
 - [ ] Environment Variables Feature
 - [ ] Pre/Post request script
 - [ ] Tab Feature
@@ -19,7 +33,7 @@ Watcher is currently under heavy development. You can give your suggestions and 
 
 ## Installation
 
-If you want to install Xplorer on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
+If you want to install Watcher on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
 
 ## Tech Stack
 
