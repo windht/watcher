@@ -1,3 +1,17 @@
+<div align="center">
+<img height=150 src="src-tauri/icons/icon.png" />
+</div>
+
+<p align="center"><span><b>Watcher</b>, API manager built for a easier use to manage and collaborate.</span></p>
+
+<div align="center">
+
+[![Windows Support](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/windht/watcher/releases) [![Ubuntu Support](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/windht/watcher/releases) [![Mac Support](https://img.shields.io/badge/MACOS-adb8c5?style=for-the-badge&logo=macos&logoColor=white)](https://github.com/windht/watcher/releases)
+
+</div>
+
+---
+
 # What is Watcher?
 
 ![Demo](screenshot.png)
