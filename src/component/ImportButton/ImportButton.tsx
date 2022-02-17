@@ -1,19 +1,23 @@
 import {
   Button,
-  Input,
   Modal,
-  ModalBody,
   ModalCloseButton,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
 } from "@chakra-ui/react";
 import { http } from "@tauri-apps/api";
 import React, { useCallback, useState } from "react";
 import { ROOT_ID } from "store/DirectoryStore";
 import { useStore } from "store/RootStore";
 import { convert } from "util/importer";
+import { ImportPostman } from "./ImportPostman";
+import { ImportSwagger } from "./ImportSwagger";
 
 type Props = {};
 
@@ -45,24 +49,14 @@ export const ImportButton = (props: Props) => {
             },
           });
         } else if (convertedItem.type === "request") {
-          const {
-            id,
-            name,
-            method,
-            params,
-            url,
-            bodyType,
-            data,
-            headers,
-            parent,
-          } = convertedItem.data;
+          const { id, name, method, params, url, data, headers, parent } =
+            convertedItem.data;
           requestStore.createNewRequest({
             id,
             name,
             method,
             params,
             url,
-            bodyType,
             data,
             headers,
           });
@@ -101,30 +95,22 @@ export const ImportButton = (props: Props) => {
         <ModalContent>
           <ModalHeader>Import</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
-            <Input
-              placeholder="Enter Url"
-              onChange={(event: any) => {
-                setUrl(event.target.value);
-              }}
-              value={url}
-            />
-          </ModalBody>
 
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              mr={3}
-              onClick={() => {
-                setIsImporting(false);
-              }}
-            >
-              Close
-            </Button>
-            <Button disabled={!url} variant="ghost" onClick={handleImport}>
-              Import
-            </Button>
-          </ModalFooter>
+          <Tabs isLazy>
+            <TabList>
+              <Tab>Swagger</Tab>
+              <Tab>Postman</Tab>
+            </TabList>
+
+            <TabPanels>
+              <TabPanel>
+                <ImportSwagger />
+              </TabPanel>
+              <TabPanel>
+                <ImportPostman />
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </ModalContent>
       </Modal>
     </>

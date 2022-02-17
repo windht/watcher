@@ -16,13 +16,16 @@ type Props = {
 };
 
 const RequestComponent = ({ request }: Props) => {
-  const { historyStore, requestStore } = useStore();
+  const { historyStore, requestStore, directoryStore } = useStore();
   const [response, setResponse] = useState<any>(undefined);
 
   const mutation = useMutation(
     (form: IRequest) => {
       historyStore.addHistory(request);
-      return doRequest(form);
+      return doRequest(
+        form,
+        directoryStore.directory.environmentVariables || []
+      );
     },
     {
       mutationKey: "Request",

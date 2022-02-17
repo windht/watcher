@@ -22,8 +22,9 @@ An API manager built for a easier use to manage and collaborate on API calls. It
 - [x] Directory Management
 - [x] Workspace switch
 - [x] Import from swagger
+- [x] Import from postman
+- [x] Environment Variables Feature
 - [ ] Import from more places!
-- [ ] Environment Variables Feature
 - [ ] Pre/Post request script
 - [ ] Tab Feature
 - [ ] Sync Feature

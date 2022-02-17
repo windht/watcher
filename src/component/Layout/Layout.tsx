@@ -1,7 +1,7 @@
 import { Flex, Text } from "@chakra-ui/react";
 import { DirectorySwitcher } from "component/DirectorySwitcher";
 import React from "react";
-// import { Sidebar } from "./Sidebar";
+import { Sidebar } from "./Sidebar";
 
 type Props = {};
 
@@ -17,14 +17,14 @@ export const Layout: React.FunctionComponent<Props> = ({ children }) => {
         <DirectorySwitcher />
       </Flex>
       <Flex w="100%" flex={1} minH="0" flexDir={"row"}>
-        {/* <Flex
-          w="80px"
+        <Flex
+          w="100px"
           flexDir={"column"}
           borderRight="1px solid"
           borderRightColor={"whiteAlpha.400"}
         >
           <Sidebar />
-        </Flex> */}
+        </Flex>
         <Flex flex={1} minW="0">
           {children}
         </Flex>
@@ -37,7 +37,7 @@ export const Layout: React.FunctionComponent<Props> = ({ children }) => {
         px="20px"
         alignItems={"center"}
       >
-        <Text>Watcher V0.2.0</Text>
+        <Text>Watcher V0.3.0</Text>
       </Flex>
     </Flex>
   );

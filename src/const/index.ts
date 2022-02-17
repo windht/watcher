@@ -5,8 +5,10 @@ export const EMPTY_REQUEST: IRequest = {
   url: "",
   method: "GET",
   headers: [],
-  data: "{}",
+  data: {
+    mode: "raw",
+    raw: "{}",
+  },
   params: [],
   name: "New Request",
-  bodyType: "",
 };

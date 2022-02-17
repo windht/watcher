@@ -51,7 +51,7 @@ export const CustomNode: React.FC<Props> = observer((props) => {
           handleToggle={handleToggle}
         />
       ) : props.node.data?.type === "request" ? (
-        <RequestNode id={props.node.data.requestId!} />
+        <RequestNode node={props.node} id={props.node.data.requestId!} />
       ) : (
         <div>{`${props.node.text}`}</div>
       )}
