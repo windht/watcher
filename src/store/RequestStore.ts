@@ -19,14 +19,20 @@ interface IParams {
   description: string;
 }
 
+interface IBody {
+  mode: "raw" | "formdata";
+  formdata?: IParams[];
+  options?: any;
+  raw?: any;
+}
+
 export interface IRequest {
   id: string;
   name: string;
   url: string;
   method: Method;
   headers: IHeader[];
-  data: any;
-  bodyType: any;
+  data: IBody;
   params: IParams[];
 }
 
@@ -67,6 +73,12 @@ export class RequestStore {
 
   updateRequest = (request: IRequest) => {
     this.requestsById[request.id] = { ...request };
+  };
+
+  removeRequestById = (id: string) => {
+    const newRequestById = { ...this.requestsById };
+    delete newRequestById[id];
+    this.requestsById = { ...newRequestById };
   };
 
   get selectedRequest() {

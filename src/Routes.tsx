@@ -9,6 +9,7 @@ import { languages } from "i18n";
 import { ApiList } from "screen/ApiList";
 import { Layout } from "component/Layout";
 import { History } from "screen/History";
+import { Environment } from "screen/Environment";
 
 interface Props {}
 
@@ -27,6 +28,7 @@ export const Routes = observer((props: Props) => {
             <Route path="/loading" component={Loading} />
             <Route path="/history" component={History} />
             <Route path="/api-list" component={ApiList} />
+            <Route path="/environment" component={Environment} />
             <Redirect from="/" to="/api-list" />
           </Switch>
         </Layout>

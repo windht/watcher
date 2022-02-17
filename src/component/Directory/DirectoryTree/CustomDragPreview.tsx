@@ -13,7 +13,7 @@ export const CustomDragPreview: React.FC<Props> = (props) => {
   return (
     <div>
       {item.data?.type === "request" ? (
-        <RequestNode id={item.data.requestId!} />
+        <RequestNode node={props.monitorProps.item} id={item.data.requestId!} />
       ) : (
         <div>{`${item.text}`}</div>
       )}

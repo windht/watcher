@@ -19,7 +19,7 @@ import {
 } from "@chakra-ui/react";
 import { observer } from "mobx-react";
 import React, { useCallback, useState } from "react";
-import { FaCheck } from "react-icons/fa";
+import { FaCheck, FaChevronDown } from "react-icons/fa";
 import { useStore } from "store/RootStore";
 
 type Props = {};
@@ -39,7 +39,15 @@ export const DirectorySwitcher = observer((props: Props) => {
   return (
     <Box mx="30px">
       <Menu isLazy>
-        <MenuButton>WorkSpaces</MenuButton>
+        <MenuButton>
+          <Flex flexDir={"row"} alignItems="center">
+            <Text mr="10px">
+              {" "}
+              {`WorkSpaces - ${directoryStore.directory.name}`}
+            </Text>
+            <FaChevronDown />
+          </Flex>
+        </MenuButton>
         <MenuList>
           {directoryStore.directories.map((directory) => (
             <MenuItem

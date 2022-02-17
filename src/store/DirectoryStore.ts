@@ -5,7 +5,7 @@ import cuid from "cuid";
 
 export const ROOT_ID = "_ROOT_ID";
 
-interface ICollection {
+export interface ICollection {
   id: string;
   parent: string;
   text: string;
@@ -27,11 +27,18 @@ interface ISyncSetting {
   };
 }
 
+interface IEnvironmentVariable {
+  key: string;
+  initial_value: string;
+  current_value: string;
+}
+
 interface IDirectory {
   id: string;
   name: string;
   collections: ICollection[];
   syncSetting?: ISyncSetting;
+  environmentVariables?: IEnvironmentVariable[];
 }
 
 const DEFAULT_DIRECTORY = "__DEFAULT";
@@ -44,6 +51,7 @@ export class DirectoryStore {
       name: "My Default Space",
       id: DEFAULT_DIRECTORY,
       collections: [],
+      environmentVariables: [],
     },
   };
 
@@ -98,6 +106,19 @@ export class DirectoryStore {
 
   selectDirectory = (id: string) => {
     this.selectedDirectoryId = id;
+  };
+
+  updateDirectory = (diretory: Partial<IDirectory>) => {
+    this.directoriesById[this.selectedDirectoryId] = {
+      ...this.directoriesById[this.selectedDirectoryId],
+      ...diretory,
+    };
+  };
+
+  removeCollectionById = (id: string) => {
+    this.directory.collections = this.directory.collections.filter(
+      (collection) => collection.id !== id
+    );
   };
 
   sync = () => {};
