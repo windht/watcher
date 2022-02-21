@@ -1,6 +1,7 @@
 import { Box, Checkbox, Flex, Input } from "@chakra-ui/react";
 import { Field, FieldArray, FieldProps, useFormikContext } from "formik";
 import React, { useMemo } from "react";
+import get from 'lodash.get'
 
 type Props = {
   fieldName: string;
@@ -9,7 +10,7 @@ type Props = {
 export const RequestParamsList = ({ fieldName }: Props) => {
   const { values, setFieldValue } = useFormikContext<any>();
   const fields = useMemo(() => {
-    const originalFields = values[fieldName] || [];
+    const originalFields = get(values, fieldName) || [];
     return [...originalFields, {}];
   }, [values, fieldName]);
 

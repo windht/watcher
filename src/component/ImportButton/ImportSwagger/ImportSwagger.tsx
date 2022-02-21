@@ -2,8 +2,6 @@ import { Button, Input, ModalBody, ModalFooter } from "@chakra-ui/react";
 import { http } from "@tauri-apps/api";
 import { useDirectoryUtil } from "hooks/directory";
 import React, { useCallback, useState } from "react";
-import { ROOT_ID } from "store/DirectoryStore";
-import { useStore } from "store/RootStore";
 import { convert } from "util/importer";
 
 type Props = {};

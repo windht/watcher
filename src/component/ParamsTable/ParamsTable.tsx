@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Box, Center, Checkbox, Flex, Input } from "@chakra-ui/react";
 import { Field, FieldArray, FieldProps, useFormikContext } from "formik";
 import { FaTrash } from "react-icons/fa";
+import get from 'lodash.get'
 
 interface IColumn {
   key: string;
@@ -16,9 +17,10 @@ type Props = {
 export const ParamsTable = ({ fieldName, columns }: Props) => {
   const { values, setFieldValue } = useFormikContext<any>();
   const fields = useMemo(() => {
-    const originalFields = values[fieldName] || [];
+    const originalFields = get(values, fieldName) || [];
     return [...originalFields, {}];
   }, [values, fieldName]);
+  
   return (
     <FieldArray
       name={fieldName}
