@@ -18,7 +18,7 @@ export const Directory = observer((props: Props) => {
 
   const treeData = useMemo(() => {
     return toJS(
-      directory.collections.filter((item) => {
+      (directory.collections || []).filter((item) => {
         if (item.data.type === "request") {
           const request =
             requestStore.requestsById[item.data.requestId as string];
@@ -30,8 +30,11 @@ export const Directory = observer((props: Props) => {
   }, [search, directory.collections, requestStore.requestsById]);
 
   const noRequestFound = useMemo(() => {
-    return treeData.filter((item) => item.data.type === "request").length === 0;
-  }, [treeData]);
+    return (
+      !!search &&
+      treeData.filter((item) => item.data.type === "request").length === 0
+    );
+  }, [treeData, search]);
 
   return (
     <Flex

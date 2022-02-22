@@ -11,13 +11,11 @@ import {
   TabPanels,
   Tabs,
 } from "@chakra-ui/react";
-import React, {  useState } from "react";
+import React, { useState } from "react";
 import { ImportPostman } from "./ImportPostman";
 import { ImportSwagger } from "./ImportSwagger";
 
-type Props = {};
-
-export const ImportButton = ({}: Props) => {
+export const ImportButton = () => {
   const [isImporting, setIsImporting] = useState(false);
   return (
     <>

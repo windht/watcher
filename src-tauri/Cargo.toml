@@ -1,6 +1,6 @@
 [package]
 name = "Watcher"
-version = "0.3.0"
+version = "0.4.0"
 description = "Watcher, API manager built for a easier use to manage and collaborate"
 authors = ["windht"]
 license = ""

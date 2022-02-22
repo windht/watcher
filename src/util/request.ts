@@ -21,49 +21,44 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
     return params.reduce((acc: any, item: any) => {
       return {
         ...acc,
-        [item.key]: processString(item.value)
-      }
-    }, {})
-  }
+        [item.key]: processString(item.value),
+      };
+    }, {});
+  };
 
-  const getBody = (data: IRequest['data']) => {
-    if (data.mode === 'raw') {
+  const getBody = (data: IRequest["data"]) => {
+    if (data.mode === "raw") {
       return {
         type: "Json",
         payload: JSON.parse(request.data.raw),
-      }
-    }
-    else {
+      };
+    } else {
       return {
         type: "Form",
-        payload: transformParamsListToObject(data.formdata)
-      }
+        payload: transformParamsListToObject(data.formdata),
+      };
     }
-  }
+  };
 
-  try {
-    const data = await http.fetch(processString(request.url), {
-      method: request.method as any,
-      headers: request.headers.reduce(
-        (acc, header) => ({
-          ...acc,
-          [header.key]: processString(header.value),
-        }),
-        {}
-      ),
-      query: request.params.reduce(
-        (acc, params) => ({
-          ...acc,
-          [params.key]: processString(params.value),
-        }),
-        {}
-      ),
-      body: getBody(request.data),
-    });
-    return data;
-  } catch (err) {
-    console.log(err);
-  }
+  const data = await http.fetch(processString(request.url), {
+    method: request.method as any,
+    headers: request.headers.reduce(
+      (acc, header) => ({
+        ...acc,
+        [header.key]: processString(header.value),
+      }),
+      {}
+    ),
+    query: request.params.reduce(
+      (acc, params) => ({
+        ...acc,
+        [params.key]: processString(params.value),
+      }),
+      {}
+    ),
+    body: getBody(request.data),
+  });
+  return data;
 
   // return axios({
   //   method: request.method,

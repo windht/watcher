@@ -16,8 +16,11 @@ export const ImportSwagger = (props: Props) => {
         method: "GET",
       });
       const convertedItems = await convert(data, "swagger");
+      console.log("Converted items");
       handleConvertedItems(convertedItems);
-    } catch {}
+    } catch (err) {
+      console.log(err);
+    }
   }, [url, handleConvertedItems]);
 
   return (

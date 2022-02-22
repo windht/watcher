@@ -36,9 +36,15 @@ const RequestComponent = ({ request }: Props) => {
     async (values) => {
       try {
         const response = await mutation.mutateAsync(values);
+        console.log("Done", response);
         setResponse(response);
       } catch (err: any) {
-        setResponse(err.response);
+        console.log(err.response);
+        setResponse(
+          err.response || {
+            status: 500,
+          }
+        );
       } finally {
       }
     },

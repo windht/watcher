@@ -1,7 +1,6 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
-import { Syncer } from "./index";
 
-class SupabaseSync extends Syncer {
+class SupabaseSync {
   client: SupabaseClient | undefined;
   init = ({ url, key }: any) => {
     this.client = createClient(url, key);
@@ -9,12 +8,18 @@ class SupabaseSync extends Syncer {
   pull = async (id: string) => {
     const workspace = await this.client
       ?.from("workspace")
-      .select(`id, data`)
+      .select(`id, data, version`)
       .eq("id", id);
-    return workspace?.data;
+
+    return (
+      workspace?.data?.[0] || {
+        version: 0,
+        data: "",
+      }
+    );
   };
-  push = async (id: string, data: any) => {
-    await this.client?.from("workspace").upsert({ id, data });
+  push = async (id: string, data: any, version: number) => {
+    await this.client?.from("workspace").upsert({ id, data, version });
   };
   sync = async (id: string, data: any) => {};
 }
