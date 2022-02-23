@@ -25,7 +25,7 @@ export const ResponseHeader = ({ response }: Props) => {
         </Tr>
       </Thead>
       <Tbody>
-        {Object.keys(response.headers).map((headerKey) => (
+        {Object.keys(response.headers || {}).map((headerKey) => (
           <Tr key={headerKey}>
             <Td>{headerKey}</Td>
             <Td>{response.headers[headerKey]}</Td>

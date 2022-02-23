@@ -89,7 +89,7 @@ export const NewButton = (props: Props) => {
               variant="ghost"
               onClick={handleCreateFolder}
             >
-              Import
+              Create
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -1,6 +1,8 @@
 import {
   Box,
   Button,
+  Center,
+  Divider,
   Flex,
   Input,
   Menu,
@@ -12,7 +14,6 @@ import {
   ModalBody,
   ModalCloseButton,
   ModalContent,
-  ModalFooter,
   ModalHeader,
   ModalOverlay,
   Text,
@@ -28,6 +29,7 @@ export const DirectorySwitcher = observer((props: Props) => {
   const { directoryStore } = useStore();
   const [isCreatingDirectory, setIsCreatingDirectory] = useState(false);
   const [directoryName, setDirectoryName] = useState("");
+  const [syncString, setSyncString] = useState("");
 
   const handleCreate = useCallback(() => {
     const directoryId = directoryStore.createDirectory(directoryName);
@@ -36,6 +38,13 @@ export const DirectorySwitcher = observer((props: Props) => {
     setIsCreatingDirectory(false);
   }, [directoryName, directoryStore]);
 
+  const handleSync = useCallback(async () => {
+    const directoryId = await directoryStore.createFromSync(syncString);
+    directoryStore.selectDirectory(directoryId);
+    setSyncString("");
+    setIsCreatingDirectory(false);
+  }, [syncString, directoryStore]);
+
   return (
     <Box mx="30px">
       <Menu isLazy>
@@ -43,7 +52,7 @@ export const DirectorySwitcher = observer((props: Props) => {
           <Flex flexDir={"row"} alignItems="center">
             <Text mr="10px">
               {" "}
-              {`WorkSpaces - ${directoryStore.directory.name}`}
+              {`WorkSpaces - ${directoryStore?.directory?.name}`}
             </Text>
             <FaChevronDown />
           </Flex>
@@ -98,26 +107,43 @@ export const DirectorySwitcher = observer((props: Props) => {
               }}
               value={directoryName}
             />
-          </ModalBody>
 
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              mr={3}
-              onClick={() => {
-                setIsCreatingDirectory(false);
+            <Flex flexDirection={"row"} mt="10px">
+              <Box flex={1}></Box>
+              <Button
+                colorScheme="blue"
+                disabled={!directoryName}
+                onClick={handleCreate}
+              >
+                Create
+              </Button>
+            </Flex>
+
+            <Center my="10px">
+              <Divider></Divider>
+              <Text mx="10px">OR</Text>
+              <Divider></Divider>
+            </Center>
+
+            <Input
+              placeholder="Enter Sync String"
+              onChange={(event) => {
+                setSyncString(event.target.value);
               }}
-            >
-              Close
-            </Button>
-            <Button
-              disabled={!directoryName}
-              variant="ghost"
-              onClick={handleCreate}
-            >
-              Create
-            </Button>
-          </ModalFooter>
+              value={syncString}
+            />
+
+            <Flex flexDirection={"row"} mt="10px">
+              <Box flex={1}></Box>
+              <Button
+                colorScheme="blue"
+                disabled={!syncString}
+                onClick={handleSync}
+              >
+                Sync
+              </Button>
+            </Flex>
+          </ModalBody>
         </ModalContent>
       </Modal>
     </Box>
