@@ -1,4 +1,5 @@
 import { http } from "@tauri-apps/api";
+import { Body } from "@tauri-apps/api/http";
 import { IRequest } from "store/RequestStore";
 
 export const doRequest = async (request: IRequest, environment: any[]) => {
@@ -19,10 +20,12 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
 
   const transformParamsListToObject = (params: any) => {
     return params.reduce((acc: any, item: any) => {
-      return {
-        ...acc,
-        [item.key]: processString(item.value),
-      };
+      return item.active
+        ? {
+            ...acc,
+            [item.key]: processString(item.value),
+          }
+        : acc;
     }, {});
   };
 
@@ -32,15 +35,12 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
         type: "Json",
         payload: JSON.parse(request.data.raw),
       };
-    } else {
-      return {
-        type: "Form",
-        payload: transformParamsListToObject(data.formdata),
-      };
+    } else if (data.mode === "formdata") {
+      return Body.form(transformParamsListToObject(data.formdata));
     }
   };
 
-  const data = await http.fetch(processString(request.url), {
+  const options = {
     method: request.method as any,
     headers: request.headers.reduce(
       (acc, header) => ({
@@ -57,7 +57,9 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
       {}
     ),
     body: getBody(request.data),
-  });
+  };
+
+  const data = await http.fetch(processString(request.url), options);
   return data;
 
   // return axios({

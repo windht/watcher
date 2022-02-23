@@ -1,7 +1,7 @@
 import { Box, Checkbox, Flex, Input } from "@chakra-ui/react";
 import { Field, FieldArray, FieldProps, useFormikContext } from "formik";
 import React, { useMemo } from "react";
-import get from 'lodash.get'
+import get from "lodash.get";
 
 type Props = {
   fieldName: string;
@@ -74,6 +74,7 @@ export const RequestParamsList = ({ fieldName }: Props) => {
                 <Field name={`${fieldName}.${index}.active`}>
                   {({ field }: FieldProps) => (
                     <Checkbox
+                      name={`${fieldName}.${index}.active`}
                       isChecked={field.value}
                       onChange={field.onChange}
                     />
