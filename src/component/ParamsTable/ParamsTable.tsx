@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Box, Center, Checkbox, Flex, Input } from "@chakra-ui/react";
 import { Field, FieldArray, FieldProps, useFormikContext } from "formik";
 import { FaTrash } from "react-icons/fa";
-import get from 'lodash.get'
+import get from "lodash.get";
 
 interface IColumn {
   key: string;
@@ -20,7 +20,7 @@ export const ParamsTable = ({ fieldName, columns }: Props) => {
     const originalFields = get(values, fieldName) || [];
     return [...originalFields, {}];
   }, [values, fieldName]);
-  
+
   return (
     <FieldArray
       name={fieldName}
@@ -81,6 +81,7 @@ export const ParamsTable = ({ fieldName, columns }: Props) => {
               </Box>
               {columns.map((column) => (
                 <Box
+                  key={column.key}
                   p="10px"
                   flex={1}
                   borderRightWidth="1px"

@@ -11,7 +11,7 @@ import { NewButton } from "component/NewButton";
 type Props = {};
 
 export const Directory = observer((props: Props) => {
-  const { requestStore } = useStore();
+  const { directoryStore } = useStore();
   const { directory, setDirectoryCollections } = useDirectory();
 
   const [search, setSearch] = useState("");
@@ -21,13 +21,15 @@ export const Directory = observer((props: Props) => {
       (directory.collections || []).filter((item) => {
         if (item.data.type === "request") {
           const request =
-            requestStore.requestsById[item.data.requestId as string];
+            directoryStore.directory.requestsById?.[
+              item.data.requestId as string
+            ];
           return request?.name?.toLowerCase().includes(search.toLowerCase());
         }
         return true;
       })
     );
-  }, [search, directory.collections, requestStore.requestsById]);
+  }, [search, directory.collections, directoryStore.directory.requestsById]);
 
   const noRequestFound = useMemo(() => {
     return (

@@ -4,23 +4,13 @@ import { useStore } from "store/RootStore";
 import cuid from "cuid";
 import { ICollection, ROOT_ID } from "store/DirectoryStore";
 export const useDirectory = () => {
-  const { directoryStore, requestStore } = useStore();
+  const { directoryStore } = useStore();
 
   const createRequestInCollection = useCallback(
     (parent = ROOT_ID) => {
-      const request = requestStore.getNewRequest();
-      directoryStore.createCollection({
-        id: cuid(),
-        text: request.name,
-        droppable: false,
-        parent,
-        data: {
-          type: "request",
-          requestId: request.id,
-        },
-      });
+      directoryStore.createRequestInCollection(parent);
     },
-    [requestStore, directoryStore]
+    [directoryStore]
   );
 
   const createFolderInCollection = useCallback(
@@ -47,7 +37,7 @@ export const useDirectory = () => {
 };
 
 export const useDirectoryUtil = () => {
-  const { directoryStore, requestStore } = useStore();
+  const { directoryStore } = useStore();
 
   const removeItem = useCallback(
     (item: ICollection) => {
@@ -59,10 +49,9 @@ export const useDirectoryUtil = () => {
         children.forEach(removeItem);
       } else if (item.data.requestId) {
         directoryStore.removeCollectionById(item.id);
-        requestStore.removeRequestById(item.data.requestId!);
       }
     },
-    [directoryStore, requestStore]
+    [directoryStore]
   );
 
   const handleConvertedItems = useCallback(
@@ -81,15 +70,6 @@ export const useDirectoryUtil = () => {
         } else if (convertedItem.type === "request") {
           const { id, name, method, params, url, data, headers, parent } =
             convertedItem.data;
-          requestStore.createNewRequest({
-            id,
-            name,
-            method,
-            params,
-            url,
-            data,
-            headers,
-          });
           directoryStore.createCollection({
             id: id,
             text: name,
@@ -100,10 +80,19 @@ export const useDirectoryUtil = () => {
               requestId: id,
             },
           });
+          directoryStore.addRequestToDirectory({
+            id,
+            name,
+            method,
+            params,
+            url,
+            data,
+            headers,
+          });
         }
       });
     },
-    [directoryStore, requestStore]
+    [directoryStore]
   );
 
   return {

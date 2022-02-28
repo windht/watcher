@@ -3,6 +3,8 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@chakra-ui/react";
 import { RequestHeader } from "./RequestHeader";
 import { RequestBody } from "./RequestBody";
 import { RequestQuery } from "./RequestQuery";
+import { RequestPreScript } from "./RequestPreScript";
+import { RequestAfterScript } from "./RequestAfterScript";
 
 type Props = {};
 
@@ -19,6 +21,14 @@ const TABS = [
     label: "Body",
     component: <RequestBody />,
   },
+  {
+    label: "Pre-Request Script",
+    component: <RequestPreScript />,
+  },
+  {
+    label: "Post-Request Script",
+    component: <RequestAfterScript />,
+  },
 ];
 
 export const RequestTabs = (props: Props) => {
@@ -31,7 +41,7 @@ export const RequestTabs = (props: Props) => {
       </TabList>
       <TabPanels flex={1} minH="0">
         {TABS.map((tab, index: number) => (
-          <TabPanel overflowY={'scroll'} px="0" key={index} h="100%">
+          <TabPanel overflowY={"scroll"} px="0" key={index} h="100%">
             {tab.component}
           </TabPanel>
         ))}
