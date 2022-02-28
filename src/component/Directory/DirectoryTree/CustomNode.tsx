@@ -16,7 +16,7 @@ type Props = {
 
 export const CustomNode: React.FC<Props> = observer((props) => {
   const indent = props.depth * 24;
-  const { requestStore } = useStore();
+  const { directoryStore } = useStore();
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -25,17 +25,17 @@ export const CustomNode: React.FC<Props> = observer((props) => {
 
   const handleClick = () => {
     if (props.node.data?.type === "request") {
-      requestStore.selectRequest(props.node.data?.requestId);
+      directoryStore.selectRequest(props.node.data?.requestId);
     }
   };
 
   const selected = useMemo(() => {
     if (props.node.data?.type === "request") {
-      return requestStore.selectedRequestId === props.node.data?.requestId;
+      return directoryStore.selectedRequestId === props.node.data?.requestId;
     } else {
       return false;
     }
-  }, [props.node, requestStore.selectedRequestId]);
+  }, [props.node, directoryStore.selectedRequestId]);
 
   return (
     <Box

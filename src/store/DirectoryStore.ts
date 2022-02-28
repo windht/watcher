@@ -4,6 +4,8 @@ import localForage from "localforage";
 import cuid from "cuid";
 import * as CryptoJS from "crypto-js";
 import { syncer } from "util/sync";
+import { IRequest } from "types/request";
+import { EMPTY_REQUEST } from "const";
 
 export const ROOT_ID = "_ROOT_ID";
 
@@ -32,6 +34,7 @@ interface ISyncSetting {
 }
 
 interface IEnvironmentVariable {
+  active: boolean;
   key: string;
   initial_value: string;
   current_value: string;
@@ -44,6 +47,7 @@ interface IDirectory {
   syncSetting?: ISyncSetting;
   environmentVariables?: IEnvironmentVariable[];
   version: number;
+  requestsById: { [key: string]: IRequest };
 }
 
 const DEFAULT_DIRECTORY = "__DEFAULT";
@@ -60,6 +64,7 @@ export class DirectoryStore {
       collections: [],
       environmentVariables: [],
       version: 1,
+      requestsById: {},
     },
   };
 
@@ -68,6 +73,8 @@ export class DirectoryStore {
   } = {};
 
   selectedDirectoryId = DEFAULT_DIRECTORY;
+
+  selectedRequestId: string | undefined;
 
   constructor() {
     makeAutoObservable(this);
@@ -128,8 +135,46 @@ export class DirectoryStore {
 
   createCollection = (collection: ICollection) => {
     this.directoriesById[this.selectedDirectoryId] = {
+      ...this.directoriesById[this.selectedDirectoryId],
+      collections: [
+        ...this.directoriesById[this.selectedDirectoryId].collections,
+        collection,
+      ],
+    };
+  };
+
+  addRequestToDirectory = (request: IRequest) => {
+    this.directoriesById[this.selectedDirectoryId] = {
+      ...this.directoriesById[this.selectedDirectoryId],
+      requestsById: {
+        ...this.directoriesById[this.selectedDirectoryId].requestsById,
+        [request.id]: request,
+      },
+    };
+  };
+
+  createRequestInCollection = (parent: string) => {
+    const request = {
+      ...EMPTY_REQUEST,
+      id: cuid(),
+    };
+    const collection = {
+      id: cuid(),
+      text: request.name,
+      droppable: false,
+      parent,
+      data: {
+        type: "request",
+        requestId: request.id,
+      },
+    };
+    this.directoriesById[this.selectedDirectoryId] = {
       ...this.directory,
       collections: [...this.directory.collections, collection],
+      requestsById: {
+        ...this.directoriesById[this.selectedDirectoryId].requestsById,
+        [request.id]: request,
+      },
     };
   };
 
@@ -149,6 +194,7 @@ export class DirectoryStore {
         collections: [],
         name,
         version: 1,
+        requestsById: {},
       },
     };
     return newId;
@@ -172,6 +218,14 @@ export class DirectoryStore {
         this.selectedDirectoryId
       ].collections.filter((collection) => collection.id !== id),
     };
+
+    const newRequestById = {
+      ...this.directoriesById[this.selectedDirectoryId].requestsById,
+    };
+    delete newRequestById[id];
+    this.directoriesById[this.selectedDirectoryId].requestsById = {
+      ...newRequestById,
+    };
   };
 
   pull = async (directory: IDirectory) => {
@@ -192,7 +246,8 @@ export class DirectoryStore {
       }
 
       return {
-        collections: data.collections || {},
+        collections: data.collections || [],
+        requestsById: data.requestsById || {},
         name: data.name,
         environmentVariables: data.environmentVariables,
         version,
@@ -207,6 +262,7 @@ export class DirectoryStore {
         collections: toJS(directory.collections),
         name: toJS(directory.name),
         environmentVariables: toJS(directory.environmentVariables),
+        requestsById: toJS(directory.requestsById),
       });
       const dataToSend = CryptoJS.AES.encrypt(
         dataString,
@@ -277,12 +333,91 @@ export class DirectoryStore {
         name: "Synced Spaces",
         version: 0,
         syncSetting,
+        requestsById: {},
       },
     };
 
     await this.sync(this.directoriesById[id]);
 
     return id;
+  };
+
+  // Requests
+
+  selectRequest = (id?: string) => {
+    this.selectedRequestId = id;
+  };
+
+  get selectedRequest() {
+    return this.selectedRequestId
+      ? this.directory.requestsById[this.selectedRequestId]
+      : undefined;
+  }
+
+  updateRequest = (request: IRequest) => {
+    this.directoriesById[this.selectedDirectoryId] = {
+      ...this.directory,
+      requestsById: {
+        ...this.directoriesById[this.selectedDirectoryId].requestsById,
+        [request.id]: {
+          ...this.directoriesById[this.selectedDirectoryId].requestsById[
+            request.id
+          ],
+          ...request,
+        },
+      },
+    };
+  };
+
+  preRequestScript = async (request: IRequest) => {
+    if (request.preRequestScript) {
+      // eslint-disable-next-line
+      const watcher = this.getWatcherUtil();
+      // eslint-disable-next-line
+      eval(request.preRequestScript);
+    }
+  };
+
+  afterRequestScript = async (request: IRequest, responseBody: any) => {
+    if (request.afterRequestScript) {
+      // eslint-disable-next-line
+      const watcher = this.getWatcherUtil();
+      // eslint-disable-next-line
+      eval(request.afterRequestScript);
+    }
+  };
+
+  getWatcherUtil = () => {
+    return {
+      setEnvironmentVariable: this.setEnvironmentVariable,
+    };
+  };
+
+  setEnvironmentVariable = (key: string, value: string) => {
+    const environmentVariables = [
+      ...(this.directory.environmentVariables || []),
+    ];
+    const existingIndex = environmentVariables.findIndex(
+      (variable) => variable.key === key
+    );
+    if (existingIndex !== -1) {
+      environmentVariables[existingIndex].current_value = value;
+      this.updateDirectory({
+        environmentVariables,
+      });
+    } else {
+      this.updateDirectory({
+        environmentVariables: [
+          ...environmentVariables,
+          {
+            active: true,
+            key,
+            initial_value: "",
+            current_value: value,
+          },
+        ],
+      });
+    }
   };
 }
 

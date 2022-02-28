@@ -16,7 +16,7 @@ type Props = {
 };
 
 const RequestComponent = ({ request }: Props) => {
-  const { historyStore, requestStore, directoryStore } = useStore();
+  const { historyStore, directoryStore } = useStore();
   const [response, setResponse] = useState<any>(undefined);
 
   const mutation = useMutation(
@@ -35,7 +35,9 @@ const RequestComponent = ({ request }: Props) => {
   const makeRequest = useCallback(
     async (values) => {
       try {
+        await directoryStore.preRequestScript(values);
         const response = await mutation.mutateAsync(values);
+        await directoryStore.afterRequestScript(values, response);
         console.log("Done", response);
         setResponse(response);
       } catch (err: any) {
@@ -48,7 +50,7 @@ const RequestComponent = ({ request }: Props) => {
       } finally {
       }
     },
-    [mutation]
+    [mutation, directoryStore]
   );
 
   const handleSubmit = useCallback(
@@ -56,13 +58,13 @@ const RequestComponent = ({ request }: Props) => {
       try {
         setResponse(undefined);
         setSubmitting(true);
-        requestStore.updateRequest(values);
+        directoryStore.updateRequest(values);
       } catch {
       } finally {
         setSubmitting(false);
       }
     },
-    [requestStore]
+    [directoryStore]
   );
 
   return (
@@ -94,8 +96,8 @@ const RequestComponent = ({ request }: Props) => {
 };
 
 export const Request = observer(() => {
-  const { requestStore } = useStore();
-  const { selectedRequest } = requestStore;
+  const { directoryStore } = useStore();
+  const { selectedRequest } = directoryStore;
 
   const request = useMemo(() => {
     return toJS(selectedRequest);

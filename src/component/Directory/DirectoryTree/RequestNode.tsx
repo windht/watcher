@@ -24,8 +24,8 @@ export const RequestNode: React.FC<{
   node: any;
   id: string;
 }> = observer(({ id, node }) => {
-  const { requestStore } = useStore();
-  const request = requestStore.requestsById[id];
+  const { directoryStore } = useStore();
+  const request = directoryStore.directory.requestsById[id];
   const { removeItem } = useDirectoryUtil();
 
   if (!request) {
