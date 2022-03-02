@@ -20,6 +20,10 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
 
   const transformParamsListToObject = (params: any) => {
     return params.reduce((acc: any, item: any) => {
+      if (!item.key) {
+        return acc;
+      }
+
       return item.active
         ? {
             ...acc,

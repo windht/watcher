@@ -378,7 +378,7 @@ export class DirectoryStore {
     }
   };
 
-  afterRequestScript = async (request: IRequest, responseBody: any) => {
+  afterRequestScript = async (request: IRequest, response: any) => {
     if (request.afterRequestScript) {
       // eslint-disable-next-line
       const watcher = this.getWatcherUtil();
@@ -389,8 +389,17 @@ export class DirectoryStore {
 
   getWatcherUtil = () => {
     return {
-      setEnvironmentVariable: this.setEnvironmentVariable,
+      environment: {
+        set: this.setEnvironmentVariable,
+        get: this.getEnvironmentVariable,
+      },
     };
+  };
+
+  getEnvironmentVariable = (key: string) => {
+    return (this.directory.environmentVariables || []).find(
+      (variable) => variable.key === key
+    );
   };
 
   setEnvironmentVariable = (key: string, value: string) => {
