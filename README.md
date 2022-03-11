@@ -57,3 +57,7 @@ If you want to run this project in your local system, please follow this guide:
 3. Follow [this guide](https://tauri.studio/en/docs/getting-started/intro/#setting-up-your-environment) to set up Tauri environment
 
 4. Run `yarn tauri dev`
+
+## Sync Features
+
+Watcher currently support storing the collection in the supabase cloud. (Can be turned on in the green cloud button). Although it is being stored in the cloud, the data is encrypted with a offline key. This makes the collection impossible to be decrypted. When you sharing the collection, you are also giving out the offline key which makes it possible for others to decrypt the collection detail locally.
