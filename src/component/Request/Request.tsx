@@ -38,13 +38,14 @@ const RequestComponent = ({ request }: Props) => {
         await directoryStore.preRequestScript(values);
         const response = await mutation.mutateAsync(values);
         await directoryStore.afterRequestScript(values, response);
-        console.log("Done", response);
+
         setResponse(response);
       } catch (err: any) {
         console.log(err.response);
         setResponse(
           err.response || {
             status: 500,
+            data: err.message,
           }
         );
       } finally {
