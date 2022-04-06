@@ -35,7 +35,11 @@ export const doRequest = async (request: IRequest, environment: any[]) => {
 
   const getBody = (data: IRequest["data"]) => {
     if (data.mode === "raw") {
-      return Body.json(JSON.parse(request.data.raw));
+      try {
+        return Body.json(JSON.parse(request.data.raw));
+      } catch {
+        return Body.text(request.data.raw);
+      }
     } else if (data.mode === "formdata") {
       return Body.form(transformParamsListToObject(data.formdata));
     }

@@ -40,7 +40,7 @@ export const Layout: React.FunctionComponent<Props> = ({ children }) => {
         px="20px"
         alignItems={"center"}
       >
-        <Text>Watcher V0.6.0</Text>
+        <Text>Watcher V0.7.0</Text>
       </Flex>
     </Flex>
   );
