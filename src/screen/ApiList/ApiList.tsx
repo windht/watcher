@@ -1,6 +1,6 @@
 import { Box, Flex } from "@chakra-ui/react";
 import { Directory } from "component/Directory";
-import { Request } from "component/Request";
+import { Tabs } from "component/Tabs";
 import React from "react";
 
 type Props = {};
@@ -13,7 +13,7 @@ export const ApiList = (props: Props) => {
           <Directory />
         </Flex>
         <Flex flex={1} minW="0">
-          <Request />
+          <Tabs />
         </Flex>
       </Flex>
     </Box>

@@ -1,5 +1,6 @@
 import { Button, Flex } from "@chakra-ui/react";
 import { useFormikContext } from "formik";
+import { useTabContext } from "hooks/tab";
 import React from "react";
 
 type Props = {
@@ -7,8 +8,8 @@ type Props = {
 };
 
 export const RequestActionButtons = ({ makeRequest }: Props) => {
-  const { values, dirty } = useFormikContext();
-
+  const { values } = useFormikContext();
+  const { isDirty } = useTabContext();
   const handleClickSend = async () => {
     await makeRequest(values);
   };
@@ -16,7 +17,7 @@ export const RequestActionButtons = ({ makeRequest }: Props) => {
   return (
     <Flex gap="10px" flexDir="row">
       <Button onClick={handleClickSend}>Send</Button>
-      {dirty && <Button type="submit">Save</Button>}
+      {isDirty && <Button type="submit">Save</Button>}
     </Flex>
   );
 };

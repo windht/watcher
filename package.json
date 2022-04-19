@@ -1,6 +1,6 @@
 {
   "name": "watcher",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "dependencies": {
     "@chakra-ui/react": "^1.8.1",
@@ -54,6 +54,7 @@
     "concurrently": "^7.0.0"
   },
   "scripts": {
+    "start:web": "react-scripts start",
     "start": "concurrently \"react-scripts start\" \"tauri dev\"",
     "build": "react-scripts build",
     "test": "react-scripts test",
