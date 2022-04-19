@@ -2,17 +2,20 @@ import { createContext, useContext } from "react";
 import { ConfigStore, configStore } from "./ConfigStore";
 import { DirectoryStore, directoryStore } from "./DirectoryStore";
 import { HistoryStore, historyStore } from "./HistoryStore";
+import { TabStore, tabStore } from "./TabStore";
 
 export interface RootStore {
   configStore: ConfigStore;
   directoryStore: DirectoryStore;
   historyStore: HistoryStore;
+  tabStore: TabStore;
 }
 
 export const rootStore: RootStore = {
   configStore,
   directoryStore,
   historyStore,
+  tabStore,
 };
 
 export const RootContext = createContext<RootStore>(rootStore);

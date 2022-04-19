@@ -6,6 +6,7 @@ import { RequestNode } from "./RequestNode";
 import { Box } from "@chakra-ui/react";
 import { observer } from "mobx-react";
 import { FolderNode } from "./FolderNode";
+import { useTabUtil } from "hooks/tab";
 
 type Props = {
   node: NodeModel<CustomData>;
@@ -17,6 +18,7 @@ type Props = {
 export const CustomNode: React.FC<Props> = observer((props) => {
   const indent = props.depth * 24;
   const { directoryStore } = useStore();
+  const { addAndSelectRequest } = useTabUtil();
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,6 +28,11 @@ export const CustomNode: React.FC<Props> = observer((props) => {
   const handleClick = () => {
     if (props.node.data?.type === "request") {
       directoryStore.selectRequest(props.node.data?.requestId);
+      if (props.node.data?.requestId) {
+        addAndSelectRequest(
+          directoryStore.directory.requestsById[props.node.data?.requestId]
+        );
+      }
     }
   };
 

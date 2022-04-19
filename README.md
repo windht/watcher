@@ -25,10 +25,10 @@ An API manager built for a easier use to manage and collaborate on API calls. It
 - [x] Import from postman
 - [x] Environment Variables Feature
 - [x] Sync/Share Feature (From [supabase](https://supabase.io/))
+- [x] Tab Feature
+- [x] Pre/Post request script
 - [ ] Sync From more places!
 - [ ] Import from more places!
-- [ ] Pre/Post request script
-- [ ] Tab Feature
 - [ ] Flow Management
 
 Watcher is currently under heavy development. You can give your suggestions and feedback on our Discussions page. If you feel comfortable in writing code using Typescript and Rust, we highly encourage you to contribute to this project.
