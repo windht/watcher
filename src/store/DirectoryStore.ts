@@ -21,7 +21,7 @@ export interface ICollection {
   };
 }
 
-interface ISyncSetting {
+export interface ISyncSetting {
   uuid: string;
   enabled: boolean;
   dataEncryptKey: string;
@@ -40,7 +40,7 @@ interface IEnvironmentVariable {
   current_value: string;
 }
 
-interface IDirectory {
+export interface IDirectory {
   id: string;
   name: string;
   collections: ICollection[];

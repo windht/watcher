@@ -4,6 +4,7 @@ import { IoClose } from "react-icons/io5";
 import { ITab, TabStatusEnum } from "store/TabStore";
 import { useStore } from "store/RootStore";
 import { useTabUtil } from "hooks/tab";
+import { REQUEST_COLOR_MAP } from "const/color";
 
 type Props = {
   tab: ITab;
@@ -16,7 +17,15 @@ export const TabItem = ({ tab, selected }: Props) => {
 
   const tabTitle = useMemo(() => {
     if (tab.type === "request") {
-      return directoryStore.directory.requestsById[tab.data.id].name;
+      const request = directoryStore.directory.requestsById[tab.data.id];
+      return (
+        <Flex flexDir={"row"}>
+          <Box color={REQUEST_COLOR_MAP[request.method] || "black"} mr="10px">
+            {request.method}
+          </Box>
+          <Text>{request.name}</Text>
+        </Flex>
+      );
     }
     return "Untitled";
   }, [tab, directoryStore]);

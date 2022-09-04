@@ -27,6 +27,7 @@ An API manager built for a easier use to manage and collaborate on API calls. It
 - [x] Sync/Share Feature (From [supabase](https://supabase.io/))
 - [x] Tab Feature
 - [x] Pre/Post request script
+- [ ] Realtime Collaboration 
 - [ ] Sync From more places!
 - [ ] Import from more places!
 - [ ] Flow Management
@@ -43,6 +44,7 @@ If you want to install Watcher on your system, you can download the installer fo
 - Chakra UI
 - Mobx
 - Tauri
+- Synced Store + Yjs (For Collaboration)
 
 ## Development
 
@@ -60,4 +62,10 @@ If you want to run this project in your local system, please follow this guide:
 
 ## Sync Features
 
-Watcher currently support storing the collection in the supabase cloud. (Can be turned on in the green cloud button). Although it is being stored in the cloud, the data is encrypted with a offline key. This makes the collection impossible to be decrypted. When you sharing the collection, you are also giving out the offline key which makes it possible for others to decrypt the collection detail locally.
+Watcher currently support storing the collection in the supabase cloud. (Can be turned on in the green cloud button). Although it is being stored in the cloud, the data is encrypted with a offline key. This makes the collection impossible to be decrypted. When you are sharing the collection, you are also giving out the offline key which makes it possible for others to decrypt the collection detail locally.
+
+We are using [automerge](https://github.com/automerge/automerge) to handle the syncing of data between different clients.
+
+## Collaboration (In Progress)
+
+[yjs](https://github.com/yjs/yjs) and [yjs-webrtc](https://github.com/yjs/y-webrtc) is used to share and exchange the realtime states between clients.

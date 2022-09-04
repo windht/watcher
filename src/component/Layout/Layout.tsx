@@ -1,4 +1,5 @@
 import { Flex, Text } from "@chakra-ui/react";
+import { CollaborationStatus } from "component/CollaborationStatus";
 import { DirectorySwitcher } from "component/DirectorySwitcher";
 import { Sync } from "component/Sync";
 import React from "react";
@@ -17,6 +18,7 @@ export const Layout: React.FunctionComponent<Props> = ({ children }) => {
       >
         <DirectorySwitcher />
         <Flex flexGrow={1}></Flex>
+        {false && <CollaborationStatus />}
         <Sync />
       </Flex>
       <Flex w="100%" flex={1} minH="0" flexDir={"row"}>
@@ -40,7 +42,7 @@ export const Layout: React.FunctionComponent<Props> = ({ children }) => {
         px="20px"
         alignItems={"center"}
       >
-        <Text>Watcher V0.8.0</Text>
+        <Text>Watcher V0.9.0</Text>
       </Flex>
     </Flex>
   );

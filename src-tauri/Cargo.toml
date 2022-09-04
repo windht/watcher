@@ -1,6 +1,6 @@
 [package]
 name = "Watcher"
-version = "0.8.0"
+version = "0.9.0"
 description = "Watcher, API manager built for a easier use to manage and collaborate"
 authors = ["windht"]
 license = ""
@@ -9,15 +9,15 @@ default-run = "Watcher"
 edition = "2018"
 build = "src/build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# See more keys and theicargo installr definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "=1.0.0-beta.4", features = [] }
+tauri-build = { version = "=1.0.4", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "=1.0.0-beta.8", features = ["api-all"] }
+tauri = { version = "=1.0.5", features = ["api-all"] }
 
 [features]
 default = [ "custom-protocol" ]

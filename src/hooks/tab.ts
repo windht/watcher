@@ -1,6 +1,6 @@
 import { TabContext } from "component/Tabs/context";
 import cuid from "cuid";
-import { useCallback, useContext, useMemo } from "react";
+import { useCallback, useContext } from "react";
 import { useStore } from "store/RootStore";
 import { ITab, TabStatusEnum } from "store/TabStore";
 import { IRequest } from "types/request";

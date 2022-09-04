@@ -1,7 +1,7 @@
 {
   "package": {
     "productName": "Watcher",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "build": {
     "distDir": "../build",
@@ -27,13 +27,11 @@
       "shortDescription": "",
       "longDescription": "",
       "deb": {
-        "depends": [],
-        "useBootstrapper": false
+        "depends": []
       },
       "macOS": {
         "frameworks": [],
         "minimumSystemVersion": "",
-        "useBootstrapper": false,
         "exceptionDomain": "",
         "signingIdentity": null,
         "entitlements": null
@@ -48,7 +46,10 @@
       "active": false
     },
     "allowlist": {
-      "all": true
+      "all": true,
+      "http": {
+        "scope": ["https://*/*", "http://*/*"]
+      }
     },
     "windows": [
       {
