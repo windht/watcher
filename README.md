@@ -80,29 +80,3 @@ watcher.log(response.status);
 ```
 
 Do not run scripts from an untrusted collection without reviewing them.
-
-## Releases and updates
-
-Pushing a semantic version tag such as `v1.0.0` validates that `package.json`, `Cargo.toml`, `tauri.conf.json`, and the tag agree, then publishes:
-
-- Windows x64 NSIS and MSI
-- macOS Apple Silicon and Intel DMG/app bundles
-- Linux x64 AppImage and deb
-- Signed updater bundles and `latest.json`
-
-Required repository secrets:
-
-- `TAURI_SIGNING_PRIVATE_KEY`
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
-- `TAURI_UPDATER_PUBLIC_KEY`
-
-Optional Apple signing/notarization secrets:
-
-- `APPLE_CERTIFICATE`
-- `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_ID`
-- `APPLE_PASSWORD`
-- `APPLE_TEAM_ID`
-- `KEYCHAIN_PASSWORD`
-
-When Apple secrets are absent, GitHub Actions clearly warns and still publishes unsigned macOS artifacts. Releases are created only by an intentional tag push.
