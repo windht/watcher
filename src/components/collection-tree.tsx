@@ -19,6 +19,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   ChevronDown,
   ChevronRight,
+  Copy,
   FileBraces,
   Folder,
   FolderOpen,
@@ -27,20 +28,96 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  Trash2,
 } from "lucide-react";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { api } from "../lib/api";
 import { importOpenApi, importPostman } from "../lib/importers";
 import { canMoveNode, visibleTree, type VisibleTreeNode } from "../lib/tree";
-import { cn } from "../lib/utils";
+import { cn, createId } from "../lib/utils";
 import { useUiStore } from "../store/ui";
-import type { ApiRequest, WorkspaceSnapshot } from "../types";
+import type { ApiRequest, KeyValueRow, TreeNode, WorkspaceSnapshot } from "../types";
 import { useWorkspace } from "../workspace-context";
-import { Button, ConfirmDialog, Dialog } from "./ui";
+import {
+  Button,
+  ConfirmDialog,
+  Dialog,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
 import { useI18n } from "../i18n";
 
 const methodClass = (method?: string) =>
   `method-${(method ?? "get").toLowerCase()}`;
+
+function remappedRows(rows: KeyValueRow[]) {
+  return rows.map((row) => ({ ...row, id: createId("row") }));
+}
+
+function cloneSubtree(
+  snapshot: WorkspaceSnapshot,
+  root: VisibleTreeNode,
+): { rootId: string; nodes: TreeNode[]; requests: ApiRequest[] } {
+  const collectIds = (nodeId: string): string[] => {
+    const children = snapshot.nodes
+      .filter((node) => node.parentId === nodeId)
+      .sort((a, b) => a.position - b.position);
+    return [nodeId, ...children.flatMap((child) => collectIds(child.id))];
+  };
+
+  const ids = collectIds(root.id);
+  const idMap = new Map(ids.map((id) => [id, createId(id.startsWith("folder") ? "folder" : "node")]));
+  const siblingCount = snapshot.nodes.filter((node) => node.parentId === root.parentId).length;
+  const nodes: TreeNode[] = [];
+  const requests: ApiRequest[] = [];
+  const rootId = idMap.get(root.id)!;
+
+  for (const id of ids) {
+    const node = snapshot.nodes.find((item) => item.id === id);
+    if (!node) continue;
+    const isRoot = id === root.id;
+    let requestId: string | null = null;
+
+    if (node.requestId) {
+      const source = snapshot.requests.find((item) => item.id === node.requestId);
+      if (source) {
+        requestId = createId("request");
+        requests.push({
+          ...structuredClone(source),
+          id: requestId,
+          name: isRoot ? `${source.name} (copy)` : source.name,
+          params: remappedRows(source.params),
+          headers: remappedRows(source.headers),
+          body: {
+            ...source.body,
+            formData: remappedRows(source.body.formData),
+          },
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    nodes.push({
+      ...node,
+      id: idMap.get(id)!,
+      parentId: isRoot ? root.parentId : idMap.get(node.parentId ?? "") ?? null,
+      requestId,
+      name: isRoot ? `${node.name} (copy)` : node.name,
+      position: isRoot ? siblingCount : node.position,
+    });
+  }
+
+  return { rootId, nodes, requests };
+}
 
 function SortableTreeRow({
   node,
@@ -49,6 +126,7 @@ function SortableTreeRow({
   selected,
   onToggle,
   onOpen,
+  onDuplicate,
   onDelete,
 }: {
   node: VisibleTreeNode;
@@ -57,8 +135,10 @@ function SortableTreeRow({
   selected: boolean;
   onToggle: () => void;
   onOpen: () => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useI18n();
   const sortable = useSortable({ id: node.id });
   return (
     <div
@@ -104,16 +184,28 @@ function SortableTreeRow({
         </>
       )}
       <span className="tree-name">{node.name}</span>
-      <button
-        className="tree-toggle tree-more"
-        aria-label={`Delete ${node.name}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete();
-        }}
-      >
-        <MoreHorizontal size={14} />
-      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="tree-toggle tree-more"
+            aria-label={t("moreActions")}
+            onClick={(event) => event.stopPropagation()}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <MoreHorizontal size={14} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+          <DropdownMenuItem onSelect={() => onDuplicate()}>
+            <Copy size={13} />
+            {t("duplicate")}
+          </DropdownMenuItem>
+          <DropdownMenuItem tone="danger" onSelect={() => onDelete()}>
+            <Trash2 size={13} />
+            {t("delete")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -183,6 +275,20 @@ export function CollectionTree() {
     await refresh();
   };
 
+  const duplicateNode = async (node: VisibleTreeNode) => {
+    const { rootId, nodes, requests } = cloneSubtree(snapshot, node);
+    await api.importItems(snapshot.selectedWorkspaceId, nodes, requests);
+    await refresh();
+    const duplicated = nodes.find((item) => item.id === rootId);
+    if (duplicated) {
+      selectNode(duplicated.id);
+      if (duplicated.requestId) {
+        const request = requests.find((item) => item.id === duplicated.requestId);
+        if (request) await openRequest(request);
+      }
+    }
+  };
+
   const onDragEnd = async ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
     const target = snapshot.nodes.find((node) => node.id === over.id);
@@ -224,16 +330,21 @@ export function CollectionTree() {
   return (
     <aside className="collection-panel">
       <div className="workspace-select-row">
-        <select
-          className="workspace-select"
+        <Select
           value={snapshot.selectedWorkspaceId}
-          onChange={(event) => void switchWorkspace(event.target.value)}
-          aria-label={t("workspace")}
+          onValueChange={(workspaceId) => void switchWorkspace(workspaceId)}
         >
-          {snapshot.workspaces.map((workspace) => (
-            <option key={workspace.id} value={workspace.id}>{workspace.name}</option>
-          ))}
-        </select>
+          <SelectTrigger className="workspace-select" aria-label={t("workspace")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {snapshot.workspaces.map((workspace) => (
+              <SelectItem key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button size="icon" variant="ghost" title={t("createWorkspace")} onClick={() => setWorkspaceDialog(true)}>
           <Plus size={16} />
         </Button>
@@ -272,6 +383,7 @@ export function CollectionTree() {
                           if (request) void openRequest(request);
                         }
                       }}
+                      onDuplicate={() => void duplicateNode(node)}
                       onDelete={() => setDeleteNode(node)}
                     />
                   </div>
@@ -307,6 +419,7 @@ export function CollectionTree() {
         onOpenChange={(open) => !open && setDeleteNode(null)}
         title={`Delete ${deleteNode?.name ?? "item"}?`}
         description={deleteNode?.kind === "folder" ? "This removes the folder and every request nested inside it. This cannot be undone." : "This removes the request and its saved tab. This cannot be undone."}
+        confirmLabel={t("delete")}
         onConfirm={() => {
           if (!deleteNode) return;
           void api.deleteNode(deleteNode.id).then(refresh);

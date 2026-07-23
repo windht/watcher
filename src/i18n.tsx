@@ -70,6 +70,9 @@ const messages = {
     githubRepository: "GitHub repository",
     noResponse: "No response yet",
     noResponseDescription: "Send this request to inspect its status, headers, timing, and body.",
+    moreActions: "More actions",
+    duplicate: "Duplicate",
+    delete: "Delete",
   },
   "zh-CN": {
     requests: "请求",
@@ -139,6 +142,9 @@ const messages = {
     githubRepository: "GitHub 仓库",
     noResponse: "尚无响应",
     noResponseDescription: "发送请求后可在此查看状态、请求头、耗时和响应体。",
+    moreActions: "更多操作",
+    duplicate: "复制",
+    delete: "删除",
   },
 } as const;
 

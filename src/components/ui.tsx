@@ -1,9 +1,12 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cva, type VariantProps } from "class-variance-authority";
 import { X } from "lucide-react";
 import {
   forwardRef,
   type ButtonHTMLAttributes,
+  type ComponentPropsWithoutRef,
+  type ElementRef,
   type HTMLAttributes,
   type ReactNode,
 } from "react";
@@ -148,3 +151,33 @@ export function ConfirmDialog({
     </Dialog>
   );
 }
+
+export const DropdownMenu = DropdownMenuPrimitive.Root;
+export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
+
+export const DropdownMenuContent = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.Content>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+>(({ className, sideOffset = 4, ...props }, ref) => (
+  <DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Content
+      ref={ref}
+      sideOffset={sideOffset}
+      className={cn("dropdown-content", className)}
+      {...props}
+    />
+  </DropdownMenuPrimitive.Portal>
+));
+DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
+
+export const DropdownMenuItem = forwardRef<
+  ElementRef<typeof DropdownMenuPrimitive.Item>,
+  ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & { tone?: "default" | "danger" }
+>(({ className, tone = "default", ...props }, ref) => (
+  <DropdownMenuPrimitive.Item
+    ref={ref}
+    className={cn("dropdown-item", tone === "danger" && "dropdown-item-danger", className)}
+    {...props}
+  />
+));
+DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;

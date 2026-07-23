@@ -1,6 +1,5 @@
 import {
   Braces,
-  Clock3,
   History,
   Settings,
   SlidersHorizontal,
@@ -10,6 +9,8 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useI18n } from "../i18n";
 import { useUpdater } from "../lib/updater";
 import { useWorkspace } from "../workspace-context";
+
+const appIconUrl = new URL("../../app-icon.png", import.meta.url).href;
 
 export function Shell() {
   const { snapshot } = useWorkspace();
@@ -31,7 +32,9 @@ export function Shell() {
   return (
     <div className="app-shell">
       <nav className="nav-rail" aria-label="Primary navigation">
-        <div className="brand-mark" aria-label="Watcher">W</div>
+        <div className="brand-mark" aria-label="Watcher">
+          <img src={appIconUrl} alt="" aria-hidden />
+        </div>
         {nav.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className="nav-link" title={label}>
             <Icon size={19} aria-hidden />
@@ -39,10 +42,6 @@ export function Shell() {
           </NavLink>
         ))}
         <div className="nav-spacer" />
-        <div className="nav-link" title={t("localOnly")}>
-          <Clock3 size={18} aria-hidden />
-          <span className="sr-only">{t("localOnly")}</span>
-        </div>
         <NavLink to="/settings" className="nav-link" title={t("settings")}>
           <Settings size={19} aria-hidden />
           {updateAvailable && <span className="update-dot" />}

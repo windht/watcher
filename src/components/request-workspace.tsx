@@ -18,6 +18,12 @@ import {
   useForm,
   type Control,
 } from "react-hook-form";
+import {
+  Group,
+  Panel,
+  Separator,
+  useDefaultLayout,
+} from "react-resizable-panels";
 import { z } from "zod";
 import { api } from "../lib/api";
 import { executeRequest, environmentMap } from "../lib/request";
@@ -32,7 +38,17 @@ import type {
 } from "../types";
 import { useWorkspace } from "../workspace-context";
 import { Button, EmptyState } from "./ui";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./select";
 import { useI18n } from "../i18n";
+
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const;
+const BODY_MODES = ["none", "json", "text", "form-data"] as const;
 
 const rowSchema = z.object({
   id: z.string(),
@@ -145,8 +161,8 @@ function ResponsePanel({
   return (
     <div className="response-panel">
       <div className="response-toolbar">
-        <button className={`section-tab ${tab === "body" ? "active" : ""}`} onClick={() => setTab("body")}>{t("body")}</button>
-        <button className={`section-tab ${tab === "headers" ? "active" : ""}`} onClick={() => setTab("headers")}>{t("headers")}</button>
+        <button type="button" className={`section-tab ${tab === "body" ? "active" : ""}`} onClick={() => setTab("body")}>{t("body")}</button>
+        <button type="button" className={`section-tab ${tab === "headers" ? "active" : ""}`} onClick={() => setTab("headers")}>{t("headers")}</button>
         <div className="response-meta">
           <span className={response.status >= 400 || response.status === 0 ? "method-delete" : "method-get"}>
             {response.status || "ERR"} {response.statusText}
@@ -326,6 +342,28 @@ export function RequestWorkspace({ request }: { request: ApiRequest }) {
     ["pre", t("preRequest")],
     ["post", t("postResponse")],
   ];
+  const bodyModeOptions = BODY_MODES.map((value) => ({
+    value,
+    label:
+      value === "none"
+        ? language === "zh-CN"
+          ? "无"
+          : "None"
+        : value === "json"
+          ? "JSON"
+          : value === "text"
+            ? language === "zh-CN"
+              ? "文本"
+              : "Text"
+            : language === "zh-CN"
+              ? "表单数据"
+              : "Form data",
+  }));
+
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "request-response-split",
+    panelIds: ["request", "response"],
+  });
 
   return (
     <form className="request-editor" onSubmit={save}>
@@ -333,65 +371,115 @@ export function RequestWorkspace({ request }: { request: ApiRequest }) {
         <input className="request-title-input" aria-label="Request name" {...register("name")} />
       </div>
       <div className="request-command">
-        <select className="select mono" {...register("method")} aria-label="HTTP method">
-          {["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].map((method) => <option key={method}>{method}</option>)}
-        </select>
+        <Controller
+          control={control}
+          name="method"
+          render={({ field }) => (
+            <Select value={field.value} onValueChange={field.onChange}>
+              <SelectTrigger className="method-select" aria-label="HTTP method">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="method-select-content">
+                {HTTP_METHODS.map((method) => (
+                  <SelectItem key={method} value={method}>
+                    {method}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
         <input className="input url-input" placeholder="https://api.example.com/v1/resource" {...register("url")} />
         <Button className="save-button" type="submit" disabled={!formState.isDirty && !tab?.dirty}><Save size={15} />{notice || t("save")}</Button>
         <Button type="button" variant="primary" disabled={sending} onClick={() => void sendRequest(form.getValues())}>
           <Send size={15} />{sending ? t("sending") : t("send")}
         </Button>
       </div>
-      <section className="request-section">
-        <div className="section-tabs" role="tablist">
-          {sections.map(([key, label]) => (
-            <button key={key} type="button" className={`section-tab ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{label}</button>
-          ))}
-        </div>
-        {section === "params" && <KeyValueEditor control={control} name="params" />}
-        {section === "headers" && <KeyValueEditor control={control} name="headers" />}
-        {section === "body" && (
-          <div className="section-content" style={{ display: "grid", gridTemplateRows: "44px minmax(0,1fr)" }}>
-            <div className="body-mode">
-              <label className="field-label" htmlFor="body-mode">{language === "zh-CN" ? "请求体类型" : "Body type"}</label>
-              <select id="body-mode" className="select" {...register("body.mode")}>
-                <option value="none">{language === "zh-CN" ? "无" : "None"}</option><option value="json">JSON</option><option value="text">{language === "zh-CN" ? "文本" : "Text"}</option><option value="form-data">{language === "zh-CN" ? "表单数据" : "Form data"}</option>
-              </select>
+      <Group
+        id="request-response-split"
+        orientation="vertical"
+        className="request-split"
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
+      >
+        <Panel id="request" className="request-panel" minSize="18%" defaultSize="58%">
+          <section className="request-section">
+            <div className="section-tabs" role="tablist">
+              {sections.map(([key, label]) => (
+                <button key={key} type="button" className={`section-tab ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{label}</button>
+              ))}
             </div>
-            {watch("body.mode") === "form-data" ? (
-              <KeyValueEditor control={control} name="body.formData" />
-            ) : watch("body.mode") === "none" ? (
-              <EmptyState icon={<FileBraces size={18} />} title="No request body" description="Choose JSON, text, or form data when this endpoint accepts a payload." />
-            ) : (
+            {section === "params" && <KeyValueEditor control={control} name="params" />}
+            {section === "headers" && <KeyValueEditor control={control} name="headers" />}
+            {section === "body" && (
+              <div className="section-content" style={{ display: "grid", gridTemplateRows: "44px minmax(0,1fr)" }}>
+                <div className="body-mode">
+                  <label className="field-label" htmlFor="body-mode">{language === "zh-CN" ? "请求体类型" : "Body type"}</label>
+                  <Controller
+                    control={control}
+                    name="body.mode"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger id="body-mode" className="body-mode-select" aria-label={language === "zh-CN" ? "请求体类型" : "Body type"}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bodyModeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                {watch("body.mode") === "form-data" ? (
+                  <KeyValueEditor control={control} name="body.formData" />
+                ) : watch("body.mode") === "none" ? (
+                  <EmptyState icon={<FileBraces size={18} />} title="No request body" description="Choose JSON, text, or form data when this endpoint accepts a payload." />
+                ) : (
+                  <Controller
+                    control={control}
+                    name="body.raw"
+                    render={({ field }) => (
+                      <CodeMirror className="code-editor" height="100%" theme={editorTheme} value={field.value} onChange={field.onChange} extensions={watch("body.mode") === "json" ? [json()] : []} />
+                    )}
+                  />
+                )}
+              </div>
+            )}
+            {(section === "pre" || section === "post") && (
               <Controller
                 control={control}
-                name="body.raw"
+                name={section === "pre" ? "preRequestScript" : "postResponseScript"}
                 render={({ field }) => (
-                  <CodeMirror className="code-editor" height="100%" theme={editorTheme} value={field.value} onChange={field.onChange} extensions={watch("body.mode") === "json" ? [json()] : []} />
+                  <CodeMirror
+                    className="code-editor"
+                    height="100%"
+                    theme={editorTheme}
+                    value={field.value}
+                    onChange={field.onChange}
+                    extensions={[javascript()]}
+                    placeholder={section === "pre" ? 'watcher.environment.set("token", "value");' : 'watcher.log(response.status);'}
+                  />
                 )}
               />
             )}
-          </div>
-        )}
-        {(section === "pre" || section === "post") && (
-          <Controller
-            control={control}
-            name={section === "pre" ? "preRequestScript" : "postResponseScript"}
-            render={({ field }) => (
-              <CodeMirror
-                className="code-editor"
-                height="100%"
-                theme={editorTheme}
-                value={field.value}
-                onChange={field.onChange}
-                extensions={[javascript()]}
-                placeholder={section === "pre" ? 'watcher.environment.set("token", "value");' : 'watcher.log(response.status);'}
-              />
-            )}
-          />
-        )}
-      </section>
-      <ResponsePanel response={responses[request.id]} editorTheme={editorTheme} />
+          </section>
+        </Panel>
+        <Separator
+          className="response-resize-handle"
+          style={{ height: 6 }}
+          aria-label={language === "zh-CN" ? "拖动以调整响应面板高度" : "Drag to resize response panel"}
+          title={language === "zh-CN" ? "拖动以调整响应面板高度" : "Drag to resize response panel"}
+        >
+          <span className="response-resize-grip" aria-hidden />
+        </Separator>
+        <Panel id="response" className="response-panel-host" minSize="18%" defaultSize="42%">
+          <ResponsePanel response={responses[request.id]} editorTheme={editorTheme} />
+        </Panel>
+      </Group>
     </form>
   );
 }

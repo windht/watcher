@@ -1,16 +1,28 @@
 import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import { api } from "../lib/api";
 import { useUiStore } from "../store/ui";
 import { useWorkspace } from "../workspace-context";
 import { Button } from "./ui";
 
 export function RequestTabs() {
-  const { snapshot, closeTab } = useWorkspace();
+  const { snapshot, openRequest, closeTab } = useWorkspace();
   const collapsed = useUiStore((state) => state.collectionCollapsed);
   const toggleCollection = useUiStore((state) => state.toggleCollection);
 
+  const createDummyTab = async () => {
+    const result = await api.createRequest(snapshot.selectedWorkspaceId, null);
+    await openRequest(result.request);
+  };
+
   return (
-    <div className="request-tabs">
+    <div
+      className="request-tabs"
+      onDoubleClick={(event) => {
+        if (event.target !== event.currentTarget) return;
+        void createDummyTab();
+      }}
+    >
       {snapshot.tabs.map((tab) => (
         <NavLink key={tab.id} to={`/requests/${tab.requestId}`} className="request-tab">
           <span className={`tree-method method-${tab.draft.method.toLowerCase()}`}>{tab.draft.method.slice(0, 6)}</span>
@@ -29,6 +41,14 @@ export function RequestTabs() {
           </button>
         </NavLink>
       ))}
+      <div
+        className="request-tabs-spacer"
+        aria-hidden
+        onDoubleClick={(event) => {
+          event.stopPropagation();
+          void createDummyTab();
+        }}
+      />
       <Button className="collapse-control" size="icon" variant="ghost" onClick={toggleCollection} title={collapsed ? "Show collections" : "Hide collections"}>
         {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
       </Button>
