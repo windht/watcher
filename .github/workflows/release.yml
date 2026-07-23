@@ -1,42 +1,152 @@
-name: "publish"
+name: Release
+
 on:
   push:
-    branches:
-      - release
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
-  publish-tauri:
+  checks:
+    name: Release checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate release tag
+        run: |
+          if [[ ! "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tags must match vX.Y.Z."
+            exit 1
+          fi
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: cargo fmt --all --check
+        working-directory: src-tauri
+      - run: cargo test
+        working-directory: src-tauri
+      - run: cargo check
+        working-directory: src-tauri
+
+  release:
+    name: Build ${{ matrix.name }}
+    needs: checks
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-latest, windows-latest]
-
+        include:
+          - name: windows-x64
+            platform: windows-latest
+            rust-target: x86_64-pc-windows-msvc
+            args: --target x86_64-pc-windows-msvc --bundles nsis,msi
+          - name: macos-arm64
+            platform: macos-latest
+            rust-target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles app,dmg
+          - name: macos-x64
+            platform: macos-latest
+            rust-target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --bundles app,dmg
+          - name: linux-x64
+            platform: ubuntu-22.04
+            rust-target: x86_64-unknown-linux-gnu
+            args: --target x86_64-unknown-linux-gnu --bundles appimage,deb
     runs-on: ${{ matrix.platform }}
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
     steps:
-      - uses: actions/checkout@v2
-      - name: setup node
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 16
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
+          version: 10
+      - uses: actions/setup-node@v4
         with:
-          toolchain: stable
-      - name: install webkit2gtk (ubuntu only)
-        if: matrix.platform == 'ubuntu-latest'
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-target }}
+      - name: Linux dependencies
+        if: matrix.name == 'linux-x64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y webkit2gtk-4.0
-      - name: install app dependencies and build it
-        run: yarn && yarn build
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+      - name: Import Apple Developer certificate
+        if: startsWith(matrix.name, 'macos-') && env.APPLE_CERTIFICATE != ''
         env:
-          CI: false
-      - uses: tauri-apps/tauri-action@v0
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [[ -z "${APPLE_CERTIFICATE_PASSWORD}" || -z "${KEYCHAIN_PASSWORD}" || -z "${APPLE_ID}" || -z "${APPLE_PASSWORD}" || -z "${APPLE_TEAM_ID}" ]]; then
+            echo "All Apple signing and notarization secrets are required when APPLE_CERTIFICATE is set."
+            exit 1
+          fi
+          echo "${APPLE_CERTIFICATE}" | base64 --decode > certificate.p12
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
+          security import certificate.p12 -k build.keychain -P "${APPLE_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" build.keychain
+          signing_identity="$(security find-identity -v -p codesigning build.keychain | grep 'Developer ID Application' | head -n 1 | sed -E 's/.*\"(.*)\".*/\1/')"
+          if [[ -z "${signing_identity}" ]]; then
+            echo "No Developer ID Application identity was found."
+            exit 1
+          fi
+          echo "APPLE_SIGNING_IDENTITY=${signing_identity}" >> "${GITHUB_ENV}"
+          echo "APPLE_ID=${APPLE_ID}" >> "${GITHUB_ENV}"
+          echo "APPLE_PASSWORD=${APPLE_PASSWORD}" >> "${GITHUB_ENV}"
+          echo "APPLE_TEAM_ID=${APPLE_TEAM_ID}" >> "${GITHUB_ENV}"
+      - name: Warn when macOS signing is unavailable
+        if: startsWith(matrix.name, 'macos-') && env.APPLE_CERTIFICATE == ''
+        run: echo "::warning::Apple signing secrets are absent; this macOS artifact will be unsigned and unnotarized."
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare signed updater configuration
+        run: pnpm release:prepare
+        env:
+          REQUIRE_TAURI_UPDATER: "1"
+          TAURI_UPDATER_PUBLIC_KEY: ${{ secrets.TAURI_UPDATER_PUBLIC_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      - name: Build and publish
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
-          releaseName: "App v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
-          releaseDraft: true
+          tagName: ${{ github.ref_name }}
+          releaseName: "Watcher ${{ github.ref_name }}"
+          releaseBody: "Cross-platform installers and signed updater artifacts for Watcher."
+          releaseDraft: false
           prerelease: false
+          args: ${{ matrix.args }}

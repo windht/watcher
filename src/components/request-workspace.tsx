@@ -1,0 +1,397 @@
+import { javascript } from "@codemirror/lang-javascript";
+import { json } from "@codemirror/lang-json";
+import CodeMirror from "@uiw/react-codemirror";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Check,
+  Clipboard,
+  FileBraces,
+  Plus,
+  Save,
+  Send,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  type Control,
+} from "react-hook-form";
+import { z } from "zod";
+import { api } from "../lib/api";
+import { executeRequest, environmentMap } from "../lib/request";
+import { runScript } from "../lib/scripts";
+import { createId, formatBytes, prettyBody } from "../lib/utils";
+import { useUiStore } from "../store/ui";
+import type {
+  ApiRequest,
+  EnvironmentVariable,
+  HttpExecutionResult,
+  KeyValueRow,
+} from "../types";
+import { useWorkspace } from "../workspace-context";
+import { Button, EmptyState } from "./ui";
+import { useI18n } from "../i18n";
+
+const rowSchema = z.object({
+  id: z.string(),
+  active: z.boolean(),
+  key: z.string(),
+  value: z.string(),
+  description: z.string(),
+});
+const requestSchema = z.object({
+  id: z.string(),
+  workspaceId: z.string(),
+  name: z.string().min(1, "A request name is required."),
+  method: z.string().min(1),
+  url: z.string().min(1, "Enter a request URL."),
+  params: z.array(rowSchema),
+  headers: z.array(rowSchema),
+  body: z.object({
+    mode: z.enum(["none", "json", "text", "form-data"]),
+    raw: z.string(),
+    formData: z.array(rowSchema),
+  }),
+  preRequestScript: z.string(),
+  postResponseScript: z.string(),
+  updatedAt: z.number(),
+});
+
+type RequestSection = "params" | "headers" | "body" | "pre" | "post";
+
+function newRow(): KeyValueRow {
+  return {
+    id: createId("row"),
+    active: true,
+    key: "",
+    value: "",
+    description: "",
+  };
+}
+
+function KeyValueEditor({
+  control,
+  name,
+}: {
+  control: Control<ApiRequest>;
+  name: "params" | "headers" | "body.formData";
+}) {
+  const { language } = useI18n();
+  const labels = language === "zh-CN"
+    ? { key: "键", value: "值", description: "说明", enable: "启用此行", remove: "删除此行", add: "添加一行" }
+    : { key: "Key", value: "Value", description: "Description", enable: "Enable row", remove: "Remove row", add: "Add row" };
+  const { fields, append, remove } = useFieldArray({ control, name: name as any });
+  return (
+    <div className="section-content">
+      <table className="kv-table">
+        <thead>
+          <tr><th className="kv-check" /><th>{labels.key}</th><th>{labels.value}</th><th>{labels.description}</th><th className="kv-remove" /></tr>
+        </thead>
+        <tbody>
+          {fields.map((field, index) => (
+            <tr key={field.id}>
+              <td className="kv-check">
+                <Controller
+                  control={control}
+                  name={`${name}.${index}.active` as any}
+                  render={({ field: input }) => <input type="checkbox" checked={input.value} onChange={input.onChange} aria-label={labels.enable} />}
+                />
+              </td>
+              {(["key", "value", "description"] as const).map((key) => (
+                <td key={key}>
+                  <Controller
+                    control={control}
+                    name={`${name}.${index}.${key}` as any}
+                    render={({ field: input }) => <input {...input} value={String(input.value ?? "")} className="kv-input" placeholder={key === "key" ? labels.key : ""} />}
+                  />
+                </td>
+              ))}
+              <td className="kv-remove">
+                <Button type="button" size="icon" variant="ghost" onClick={() => remove(index)} aria-label={labels.remove}><Trash2 size={13} /></Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <Button type="button" size="compact" variant="ghost" className="add-row" onClick={() => append(newRow() as any)}><Plus size={13} />{labels.add}</Button>
+    </div>
+  );
+}
+
+function ResponsePanel({
+  response,
+  editorTheme,
+}: {
+  response?: HttpExecutionResult;
+  editorTheme: "light" | "dark";
+}) {
+  const { t, language } = useI18n();
+  const [tab, setTab] = useState<"body" | "headers">("body");
+  const [copied, setCopied] = useState(false);
+  if (!response) {
+    return (
+      <div className="response-panel">
+        <div className="response-toolbar"><span className="section-tab active">{language === "zh-CN" ? "响应" : "Response"}</span></div>
+        <EmptyState icon={<FileBraces size={19} />} title={t("noResponse")} description={t("noResponseDescription")} />
+      </div>
+    );
+  }
+  const content =
+    tab === "body"
+      ? prettyBody(response.body)
+      : Object.entries(response.headers).map(([key, value]) => `${key}: ${value}`).join("\n");
+  return (
+    <div className="response-panel">
+      <div className="response-toolbar">
+        <button className={`section-tab ${tab === "body" ? "active" : ""}`} onClick={() => setTab("body")}>{t("body")}</button>
+        <button className={`section-tab ${tab === "headers" ? "active" : ""}`} onClick={() => setTab("headers")}>{t("headers")}</button>
+        <div className="response-meta">
+          <span className={response.status >= 400 || response.status === 0 ? "method-delete" : "method-get"}>
+            {response.status || "ERR"} {response.statusText}
+          </span>
+          <span>{response.durationMs} ms</span>
+          <span>{formatBytes(response.sizeBytes)}</span>
+        </div>
+      </div>
+      <div className="response-body">
+        {response.error && <div className="response-error">{response.error}</div>}
+        <Button
+          size="icon"
+          variant="secondary"
+          className="response-copy"
+          title={language === "zh-CN" ? "复制响应" : "Copy response"}
+          onClick={async () => {
+            await navigator.clipboard.writeText(content);
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1_200);
+          }}
+        >
+          {copied ? <Check size={14} /> : <Clipboard size={14} />}
+        </Button>
+        <CodeMirror
+          className="code-editor"
+          value={content}
+          height="100%"
+          theme={editorTheme}
+          readOnly
+          basicSetup={{ lineNumbers: true, foldGutter: true }}
+          extensions={tab === "body" ? [json()] : []}
+        />
+      </div>
+    </div>
+  );
+}
+
+export function RequestWorkspace({ request }: { request: ApiRequest }) {
+  const { t, language } = useI18n();
+  const { snapshot, refresh, setTabs } = useWorkspace();
+  const tab = snapshot.tabs.find((item) => item.requestId === request.id);
+  const responses = useUiStore((state) => state.responses);
+  const setResponse = useUiStore((state) => state.setResponse);
+  const [section, setSection] = useState<RequestSection>("params");
+  const [sending, setSending] = useState(false);
+  const [notice, setNotice] = useState("");
+  const persistTimer = useRef<number | null>(null);
+  const editorTheme =
+    snapshot.settings.theme === "system"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+      : snapshot.settings.theme;
+  const initial = tab?.draft ?? request;
+  const form = useForm<ApiRequest>({
+    resolver: zodResolver(requestSchema),
+    defaultValues: structuredClone(initial),
+    mode: "onChange",
+  });
+  const { control, register, handleSubmit, watch, reset, formState } = form;
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      if (!tab) return;
+      if (persistTimer.current) window.clearTimeout(persistTimer.current);
+      persistTimer.current = window.setTimeout(() => {
+        const draft = value as ApiRequest;
+        const tabs = snapshot.tabs.map((item) =>
+          item.id === tab.id ? { ...item, draft, dirty: true } : item,
+        );
+        void setTabs(tabs, tab.id);
+      }, 250);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    };
+  }, [setTabs, snapshot.tabs, tab, watch]);
+
+  const save = handleSubmit(async (values) => {
+    const saved = { ...values, updatedAt: Date.now() };
+    await api.saveRequest(saved);
+    const tabs = snapshot.tabs.map((item) =>
+      item.requestId === saved.id ? { ...item, draft: saved, dirty: false } : item,
+    );
+    await setTabs(tabs, tab?.id ?? null);
+    reset(saved);
+    setNotice("Saved");
+    window.setTimeout(() => setNotice(""), 1_200);
+    await refresh();
+  });
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void save();
+      }
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        void sendRequest(form.getValues());
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  const mergeEnvironment = async (values: Record<string, string>) => {
+    const current = new Map(snapshot.environmentVariables.map((item) => [item.key, item]));
+    const variables: EnvironmentVariable[] = Object.entries(values).map(([key, value], position) => {
+      const existing = current.get(key);
+      return existing
+        ? { ...existing, currentValue: value, position }
+        : {
+            id: createId("environment"),
+            workspaceId: snapshot.selectedWorkspaceId,
+            active: true,
+            key,
+            initialValue: "",
+            currentValue: value,
+            position,
+          };
+    });
+    await api.saveEnvironments(snapshot.selectedWorkspaceId, variables);
+    return variables;
+  };
+
+  const sendRequest = async (values: ApiRequest) => {
+    const parsed = requestSchema.safeParse(values);
+    if (!parsed.success) {
+      setNotice(parsed.error.issues[0]?.message ?? "Check the request fields.");
+      return;
+    }
+    setSending(true);
+    setNotice("");
+    try {
+      let workingRequest = structuredClone(parsed.data);
+      let variables = snapshot.environmentVariables;
+      if (workingRequest.preRequestScript.trim()) {
+        const scriptResult = await runScript(workingRequest.preRequestScript, {
+          request: workingRequest,
+          environment: environmentMap(variables),
+        });
+        workingRequest = scriptResult.request;
+        variables = await mergeEnvironment(scriptResult.environment);
+      }
+      let response = await executeRequest(workingRequest, variables);
+      if (workingRequest.postResponseScript.trim()) {
+        const scriptResult = await runScript(workingRequest.postResponseScript, {
+          request: workingRequest,
+          response,
+          environment: environmentMap(variables),
+        });
+        response = scriptResult.response ?? response;
+        await mergeEnvironment(scriptResult.environment);
+      }
+      setResponse(request.id, response);
+      await api.recordHistory(snapshot.selectedWorkspaceId, workingRequest, response);
+    } catch (error) {
+      const response: HttpExecutionResult = {
+        status: 0,
+        statusText: "Script failed",
+        headers: {},
+        body: "",
+        durationMs: 0,
+        sizeBytes: 0,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      setResponse(request.id, response);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sections: Array<[RequestSection, string]> = [
+    ["params", t("params")],
+    ["headers", t("headers")],
+    ["body", t("body")],
+    ["pre", t("preRequest")],
+    ["post", t("postResponse")],
+  ];
+
+  return (
+    <form className="request-editor" onSubmit={save}>
+      <div className="request-title-row">
+        <input className="request-title-input" aria-label="Request name" {...register("name")} />
+      </div>
+      <div className="request-command">
+        <select className="select mono" {...register("method")} aria-label="HTTP method">
+          {["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"].map((method) => <option key={method}>{method}</option>)}
+        </select>
+        <input className="input url-input" placeholder="https://api.example.com/v1/resource" {...register("url")} />
+        <Button className="save-button" type="submit" disabled={!formState.isDirty && !tab?.dirty}><Save size={15} />{notice || t("save")}</Button>
+        <Button type="button" variant="primary" disabled={sending} onClick={() => void sendRequest(form.getValues())}>
+          <Send size={15} />{sending ? t("sending") : t("send")}
+        </Button>
+      </div>
+      <section className="request-section">
+        <div className="section-tabs" role="tablist">
+          {sections.map(([key, label]) => (
+            <button key={key} type="button" className={`section-tab ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{label}</button>
+          ))}
+        </div>
+        {section === "params" && <KeyValueEditor control={control} name="params" />}
+        {section === "headers" && <KeyValueEditor control={control} name="headers" />}
+        {section === "body" && (
+          <div className="section-content" style={{ display: "grid", gridTemplateRows: "44px minmax(0,1fr)" }}>
+            <div className="body-mode">
+              <label className="field-label" htmlFor="body-mode">{language === "zh-CN" ? "请求体类型" : "Body type"}</label>
+              <select id="body-mode" className="select" {...register("body.mode")}>
+                <option value="none">{language === "zh-CN" ? "无" : "None"}</option><option value="json">JSON</option><option value="text">{language === "zh-CN" ? "文本" : "Text"}</option><option value="form-data">{language === "zh-CN" ? "表单数据" : "Form data"}</option>
+              </select>
+            </div>
+            {watch("body.mode") === "form-data" ? (
+              <KeyValueEditor control={control} name="body.formData" />
+            ) : watch("body.mode") === "none" ? (
+              <EmptyState icon={<FileBraces size={18} />} title="No request body" description="Choose JSON, text, or form data when this endpoint accepts a payload." />
+            ) : (
+              <Controller
+                control={control}
+                name="body.raw"
+                render={({ field }) => (
+                  <CodeMirror className="code-editor" height="100%" theme={editorTheme} value={field.value} onChange={field.onChange} extensions={watch("body.mode") === "json" ? [json()] : []} />
+                )}
+              />
+            )}
+          </div>
+        )}
+        {(section === "pre" || section === "post") && (
+          <Controller
+            control={control}
+            name={section === "pre" ? "preRequestScript" : "postResponseScript"}
+            render={({ field }) => (
+              <CodeMirror
+                className="code-editor"
+                height="100%"
+                theme={editorTheme}
+                value={field.value}
+                onChange={field.onChange}
+                extensions={[javascript()]}
+                placeholder={section === "pre" ? 'watcher.environment.set("token", "value");' : 'watcher.log(response.status);'}
+              />
+            )}
+          />
+        )}
+      </section>
+      <ResponsePanel response={responses[request.id]} editorTheme={editorTheme} />
+    </form>
+  );
+}

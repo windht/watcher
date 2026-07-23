@@ -1,71 +1,108 @@
 <div align="center">
-<img height=150 src="src-tauri/icons/icon.png" />
+  <img width="112" src="src-tauri/icons/icon.png" alt="Watcher icon" />
+  <h1>Watcher</h1>
+  <p>A polished, local-first desktop client for organizing, running, and inspecting API requests.</p>
 </div>
 
-<p align="center"><span><b>Watcher</b>, API manager built for a easier use to manage and collaborate.</span></p>
+![Watcher request workspace](screenshot.png)
 
-<div align="center">
+## Why Watcher
 
-[![Windows Support](https://img.shields.io/badge/Windows-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/windht/watcher/releases) [![Ubuntu Support](https://img.shields.io/badge/Ubuntu-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://github.com/windht/watcher/releases) [![Mac Support](https://img.shields.io/badge/MACOS-adb8c5?style=for-the-badge&logo=macos&logoColor=white)](https://github.com/windht/watcher/releases)
+Watcher keeps API work on your device. Workspaces, collections, environments, request drafts, tabs, and history are stored in a local SQLite database—there is no account, cloud service, or telemetry.
 
-</div>
+### Features
 
----
+- Nested, searchable request collections with keyboard-accessible drag and drop
+- Persistent workspaces and request tabs with explicit dirty/save state
+- HTTP, HTTPS, headers, query parameters, JSON, text, and form-data bodies
+- Local environment variables using `{{ variable }}` substitution
+- Constrained pre-request and post-response scripts with a two-second timeout
+- Formatted response body, headers, status, timing, size, and copy actions
+- Local request history with replay
+- Nested Postman Collection and OpenAPI JSON import
+- English and Simplified Chinese, with dark, light, and system themes
+- Signed in-app updates from GitHub Releases
 
-# What is Watcher?
+## Install
 
-![Demo](screenshot.png)
+Download the installer for Windows, macOS, or Linux from [GitHub Releases](https://github.com/windht/watcher/releases).
 
-An API manager built for a easier use to manage and collaborate on API calls. It is also a cross-platform application powered by the web that is being wrapped using [Tauri](https://tauri.studio) framework in which you can run Watcher on Windows, MacOS, or Linux without having much trouble. Some Watcher's features/roadmap in summary are:
-
-- [x] Making Request (Of course!)
-- [x] Directory Management
-- [x] Workspace switch
-- [x] Import from swagger
-- [x] Import from postman
-- [x] Environment Variables Feature
-- [x] Sync/Share Feature (From [supabase](https://supabase.io/))
-- [x] Tab Feature
-- [x] Pre/Post request script
-- [ ] Realtime Collaboration 
-- [ ] Sync From more places!
-- [ ] Import from more places!
-- [ ] Flow Management
-
-Watcher is currently under heavy development. You can give your suggestions and feedback on our Discussions page. If you feel comfortable in writing code using Typescript and Rust, we highly encourage you to contribute to this project.
-
-## Installation
-
-If you want to install Watcher on your system, you can download the installer for your operating system [on the release page](https://github.com/windht/watcher/releases). Please note that the current version is not stable yet, and you may encounter various bugs.
-
-## Tech Stack
-
-- React
-- Chakra UI
-- Mobx
-- Tauri
-- Synced Store + Yjs (For Collaboration)
+Watcher 1.0 uses a new SQLite database and intentionally does not import or delete Watcher 0.9 browser/localForage data.
 
 ## Development
 
-If you want to run this project in your local system, please follow this guide:
+### Prerequisites
 
-0. We use `yarn` to manage package and run scripts.
+- Node.js 24
+- pnpm 10
+- Stable Rust
+- [Tauri v2 platform dependencies](https://v2.tauri.app/start/prerequisites/)
 
-1. Run `yarn install` to install dependencies.
+```bash
+pnpm install
+pnpm tauri:dev
+```
 
-2. Run `yarn start` to start the react app running on port 3000 by default.
+Useful checks:
 
-3. Follow [this guide](https://tauri.studio/en/docs/getting-started/intro/#setting-up-your-environment) to set up Tauri environment
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm tauri:check
+```
 
-4. Run `yarn tauri dev`
+The browser-only `pnpm dev` mode uses an in-memory demo repository. Packaged and Tauri development builds use SQLite in the platform application-data directory.
 
-## Sync Features
+## Architecture
 
-Watcher currently support storing the collection in the supabase cloud. (Can be turned on in the green cloud button). Although it is being stored in the cloud, the data is encrypted with a offline key. This makes the collection impossible to be decrypted. When you are sharing the collection, you are also giving out the offline key which makes it possible for others to decrypt the collection detail locally.
+- React 19, TypeScript, Vite, React Router 7
+- TanStack Query for asynchronous persisted state and Zustand for transient UI state
+- shadcn-style components, Radix primitives, Tailwind CSS, dnd-kit, and TanStack Virtual
+- React Hook Form and Zod for validated request/environment editing
+- CodeMirror 6 for bodies, scripts, and responses
+- Tauri v2 with Rust commands and bundled SQLite
+- Tauri HTTP, updater, process, and opener plugins
 
-We are using [automerge](https://github.com/automerge/automerge) to handle the syncing of data between different clients.
+The design source of truth is [`DESIGN.md`](DESIGN.md). It includes the Stitch project, design-system, and primary-screen identifiers used for the Watcher 1.0 redesign.
 
-## Collaboration (In Progress)
+## Security model
 
-[yjs](https://github.com/yjs/yjs) and [yjs-webrtc](https://github.com/yjs/y-webrtc) is used to share and exchange the realtime states between clients.
+Watcher grants its main Tauri window HTTP and HTTPS access because arbitrary endpoints are the product’s core purpose. Native commands use typed arguments and validate workspace ownership, parent types, tree cycles, and transactional deletion.
+
+Request scripts run in a dedicated Web Worker with no DOM or Tauri API access. The worker is terminated after two seconds and only receives the request, response, environment map, and a small `watcher` API:
+
+```js
+watcher.environment.get("token");
+watcher.environment.set("token", "new value");
+watcher.log(response.status);
+```
+
+Do not run scripts from an untrusted collection without reviewing them.
+
+## Releases and updates
+
+Pushing a semantic version tag such as `v1.0.0` validates that `package.json`, `Cargo.toml`, `tauri.conf.json`, and the tag agree, then publishes:
+
+- Windows x64 NSIS and MSI
+- macOS Apple Silicon and Intel DMG/app bundles
+- Linux x64 AppImage and deb
+- Signed updater bundles and `latest.json`
+
+Required repository secrets:
+
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+- `TAURI_UPDATER_PUBLIC_KEY`
+
+Optional Apple signing/notarization secrets:
+
+- `APPLE_CERTIFICATE`
+- `APPLE_CERTIFICATE_PASSWORD`
+- `APPLE_ID`
+- `APPLE_PASSWORD`
+- `APPLE_TEAM_ID`
+- `KEYCHAIN_PASSWORD`
+
+When Apple secrets are absent, GitHub Actions clearly warns and still publishes unsigned macOS artifacts. Releases are created only by an intentional tag push.

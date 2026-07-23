@@ -1,24 +1,6 @@
-#![cfg_attr(
-  all(not(debug_assertions), target_os = "windows"),
-  windows_subsystem = "windows"
-)]
-
-use tauri::{Submenu, Menu, MenuItem};
+// Prevents an additional console window on Windows in release builds.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-  let my_app_menu = Menu::new()
-    .add_native_item(MenuItem::Copy)
-    .add_native_item(MenuItem::Paste)
-    .add_native_item(MenuItem::SelectAll)
-    .add_native_item(MenuItem::Cut)
-    .add_native_item(MenuItem::Undo)
-    .add_native_item(MenuItem::Redo);
-    
-  let menu = Menu::new()
-     .add_submenu(Submenu::new("Edit", my_app_menu));
-
-  tauri::Builder::default()
-    .menu(menu)
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+  watcher_lib::run();
 }
