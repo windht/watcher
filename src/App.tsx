@@ -10,6 +10,7 @@ import { Shell } from "./components/shell";
 import { I18nProvider } from "./i18n";
 import { Skeleton } from "./components/ui";
 import { WorkspaceProvider, useSnapshotQuery } from "./workspace-context";
+import { WatcherAssistant } from "./assistant/watcher-assistant";
 
 const RequestsPage = lazy(() => import("./pages/requests").then((module) => ({ default: module.RequestsPage })));
 const EnvironmentPage = lazy(() => import("./pages/environments").then((module) => ({ default: module.EnvironmentPage })));
@@ -42,6 +43,12 @@ function AppRoutes() {
     media.addEventListener("change", resolveTheme);
     return () => media.removeEventListener("change", resolveTheme);
   }, [snapshot]);
+
+  useEffect(() => {
+    const refresh = () => void queryClient.invalidateQueries({ queryKey: ["snapshot"] });
+    window.addEventListener("watcher:data-changed", refresh);
+    return () => window.removeEventListener("watcher:data-changed", refresh);
+  }, []);
 
   if (snapshotQuery.isLoading) {
     return (
@@ -76,6 +83,7 @@ function AppRoutes() {
               <Route path="*" element={<Navigate to="/requests" replace />} />
             </Route>
           </Routes>
+          <WatcherAssistant />
         </Suspense>
       </WorkspaceProvider>
     </I18nProvider>

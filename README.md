@@ -1,10 +1,24 @@
 <div align="center">
   <img width="112" src="src-tauri/icons/icon.png" alt="Watcher icon" />
   <h1>Watcher</h1>
-  <p>A polished, local-first desktop client for organizing, running, and inspecting API requests.</p>
+  <p>An agent-native, local-first desktop tool for organizing, running, and inspecting APIs.</p>
 </div>
 
 ![Watcher request workspace](screenshot.png)
+
+## Agent-native API management
+
+Watcher gives people and coding agents the same API-management capabilities. Use the desktop UI, connect an MCP client, or open the built-in assistant popover to manage workspaces, folders, and requests; send one request or a list; and inspect every execution in the same local History.
+
+The built-in MCP server starts with Watcher at:
+
+```text
+http://127.0.0.1:11532/mcp
+```
+
+It exposes workspace, folder, and request CRUD plus `send_request` and `send_requests`. HTTP executions made through MCP use Watcher's local environment variables and are recorded in History.
+
+The assistant uses assistant-ui with AI SDK v7 and any OpenAI-compatible provider you configure in Settings. If an endpoint returns 401/403, Watcher renders a private credential form inside the tool message. The credential is stored as a local environment value, the saved request sees only a `{{PLACEHOLDER}}`, and the value never enters assistant model context or tool output.
 
 ## Why Watcher
 
@@ -19,6 +33,9 @@ Watcher keeps API work on your device. Workspaces, collections, environments, re
 - Constrained pre-request and post-response scripts with a two-second timeout
 - Formatted response body, headers, status, timing, size, and copy actions
 - Local request history with replay
+- Local streamable-HTTP MCP server with traced CRUD and execution tools
+- Built-in assistant-ui popover for natural-language API management
+- Private credential tool UI with redacted sensitive headers
 - Nested Postman Collection and OpenAPI JSON import
 - English and Simplified Chinese, with dark, light, and system themes
 - Signed in-app updates from GitHub Releases

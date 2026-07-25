@@ -9,12 +9,21 @@ import type { Language, ThemeMode } from "../types";
 import { useWorkspace } from "../workspace-context";
 import { Badge, Button } from "../components/ui";
 import { useI18n } from "../i18n";
+import {
+  ASSISTANT_SETTINGS_CHANGED,
+  isAssistantConfigured,
+  loadAssistantSettings,
+  persistAssistantSettings,
+  type AssistantSettings,
+} from "../assistant/settings";
 
 export function SettingsPage() {
   const { snapshot, refresh } = useWorkspace();
   const { t } = useI18n();
   const updater = useUpdater();
   const [version, setVersion] = useState("1.0.0");
+  const [assistantSettings, setAssistantSettings] = useState<AssistantSettings>(loadAssistantSettings);
+  const [assistantNotice, setAssistantNotice] = useState("");
   const availableUpdate =
     updater.status.state === "available" ? updater.status.update : null;
 
@@ -41,6 +50,17 @@ export function SettingsPage() {
       default: return t("updateDefault");
     }
   })();
+
+  const saveAssistantSettings = () => {
+    try {
+      const saved = persistAssistantSettings(assistantSettings);
+      setAssistantSettings(saved);
+      setAssistantNotice("Saved locally. The assistant launcher is ready.");
+      window.dispatchEvent(new Event(ASSISTANT_SETTINGS_CHANGED));
+    } catch (error) {
+      setAssistantNotice(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   return (
     <div className="page">
@@ -76,6 +96,45 @@ export function SettingsPage() {
               <Button disabled={updater.status.state === "checking" || updater.status.state === "downloading" || updater.status.state === "installing"} onClick={() => void updater.checkForUpdate()}><RefreshCw size={14} />{t("checkNow")}</Button>
               {availableUpdate && <Button variant="primary" onClick={() => window.confirm(`Install Watcher ${availableUpdate.version} and relaunch?`) && void updater.install()}>{t("installRelaunch")}</Button>}
             </div>
+          </div>
+        </section>
+        <section className="settings-section">
+          <div className="settings-copy">
+            <h2>API Assistant</h2>
+            <p>Configure an OpenAI-compatible AI SDK v7 model. Provider credentials stay in this local webview.</p>
+          </div>
+          <div className="settings-control assistant-settings-control">
+            <Badge tone={isAssistantConfigured(loadAssistantSettings()) ? "success" : undefined}>
+              {isAssistantConfigured(loadAssistantSettings()) ? "Configured" : "Not configured"}
+            </Badge>
+            <label className="field-label" htmlFor="assistant-base-url">Base URL</label>
+            <input
+              id="assistant-base-url"
+              className="input"
+              value={assistantSettings.baseUrl}
+              placeholder="https://api.openai.com/v1"
+              onChange={(event) => setAssistantSettings({ ...assistantSettings, baseUrl: event.target.value })}
+            />
+            <label className="field-label" htmlFor="assistant-api-key">Provider API key</label>
+            <input
+              id="assistant-api-key"
+              type="password"
+              autoComplete="off"
+              className="input"
+              value={assistantSettings.apiKey}
+              placeholder="Stored locally"
+              onChange={(event) => setAssistantSettings({ ...assistantSettings, apiKey: event.target.value })}
+            />
+            <label className="field-label" htmlFor="assistant-model">Model</label>
+            <input
+              id="assistant-model"
+              className="input"
+              value={assistantSettings.model}
+              placeholder="Your provider's model ID"
+              onChange={(event) => setAssistantSettings({ ...assistantSettings, model: event.target.value })}
+            />
+            <Button variant="primary" onClick={saveAssistantSettings}>Save assistant settings</Button>
+            {assistantNotice && <span className="muted">{assistantNotice}</span>}
           </div>
         </section>
         <section className="settings-section">

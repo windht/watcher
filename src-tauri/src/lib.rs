@@ -1,3 +1,4 @@
+mod mcp;
 mod models;
 mod storage;
 
@@ -112,6 +113,49 @@ fn rename_workspace(
       )
       .map_err(storage::error)?;
     Ok(())
+  })
+}
+
+#[tauri::command]
+fn delete_workspace(
+  state: tauri::State<'_, AppState>,
+  workspace_id: String,
+) -> CommandResult<String> {
+  state.with_connection(|connection| {
+    let exists: bool = connection
+      .query_row(
+        "SELECT EXISTS(SELECT 1 FROM workspaces WHERE id = ?1)",
+        [&workspace_id],
+        |row| row.get(0),
+      )
+      .map_err(storage::error)?;
+    if !exists {
+      return Err("Workspace not found.".into());
+    }
+    connection
+      .execute("DELETE FROM workspaces WHERE id = ?1", [&workspace_id])
+      .map_err(storage::error)?;
+    let mut workspaces = storage::list_workspaces(connection)?;
+    if workspaces.is_empty() {
+      let workspace = Workspace {
+        id: id("workspace"),
+        name: "My Workspace".into(),
+        created_at: now_ms(),
+      };
+      connection
+        .execute(
+          "INSERT INTO workspaces (id, name, created_at) VALUES (?1, ?2, ?3)",
+          params![workspace.id, workspace.name, workspace.created_at],
+        )
+        .map_err(storage::error)?;
+      workspaces.push(workspace);
+    }
+    let mut settings = storage::read_settings(connection)?;
+    if settings.selected_workspace_id == workspace_id {
+      settings.selected_workspace_id = workspaces[0].id.clone();
+      storage::write_settings(connection, &settings)?;
+    }
+    Ok(settings.selected_workspace_id)
   })
 }
 
@@ -491,12 +535,16 @@ pub fn run() {
     .setup(|app| {
       let app_data = app.path().app_data_dir()?;
       app.manage(AppState::open(&app_data)?);
+      if let Err(error) = mcp::start(app.handle().clone()) {
+        eprintln!("Watcher MCP server did not start: {error}");
+      }
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
       get_snapshot,
       create_workspace,
       rename_workspace,
+      delete_workspace,
       create_folder,
       create_request,
       rename_node,

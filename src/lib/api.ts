@@ -117,6 +117,23 @@ export const api = {
     return command<void>("rename_workspace", { workspaceId, name });
   },
 
+  async deleteWorkspace(workspaceId: string) {
+    if (!isTauriRuntime()) {
+      fallbackState.workspaces = fallbackState.workspaces.filter((item) => item.id !== workspaceId);
+      fallbackState.nodes = fallbackState.nodes.filter((item) => item.workspaceId !== workspaceId);
+      fallbackState.requests = fallbackState.requests.filter((item) => item.workspaceId !== workspaceId);
+      fallbackState.variables = fallbackState.variables.filter((item) => item.workspaceId !== workspaceId);
+      fallbackState.history = fallbackState.history.filter((item) => item.workspaceId !== workspaceId);
+      if (fallbackState.workspaces.length === 0) {
+        const replacement = { id: createId("workspace"), name: "My Workspace", createdAt: Date.now() };
+        fallbackState.workspaces.push(replacement);
+      }
+      fallbackState.settings.selectedWorkspaceId = fallbackState.workspaces[0].id;
+      return fallbackState.settings.selectedWorkspaceId;
+    }
+    return command<string>("delete_workspace", { workspaceId });
+  },
+
   async createFolder(workspaceId: string, parentId: string | null, name: string) {
     if (!isTauriRuntime()) {
       const node: TreeNode = {
