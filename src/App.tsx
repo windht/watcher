@@ -15,6 +15,7 @@ import { WatcherAssistant } from "./assistant/watcher-assistant";
 const RequestsPage = lazy(() => import("./pages/requests").then((module) => ({ default: module.RequestsPage })));
 const EnvironmentPage = lazy(() => import("./pages/environments").then((module) => ({ default: module.EnvironmentPage })));
 const HistoryPage = lazy(() => import("./pages/history").then((module) => ({ default: module.HistoryPage })));
+const McpPage = lazy(() => import("./pages/mcp").then((module) => ({ default: module.McpPage })));
 const SettingsPage = lazy(() => import("./pages/settings").then((module) => ({ default: module.SettingsPage })));
 
 const queryClient = new QueryClient({
@@ -79,6 +80,7 @@ function AppRoutes() {
               <Route path="/requests/:requestId?" element={<RequestsPage />} />
               <Route path="/environment" element={<EnvironmentPage />} />
               <Route path="/history" element={<HistoryPage />} />
+              <Route path="/mcp" element={<McpPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/requests" replace />} />
             </Route>

@@ -1,6 +1,7 @@
 import {
   Braces,
   History,
+  Server,
   Settings,
   SlidersHorizontal,
 } from "lucide-react";
@@ -21,6 +22,7 @@ export function Shell() {
     { to: "/requests", label: t("requests"), icon: Braces },
     { to: "/environment", label: t("environment"), icon: SlidersHorizontal },
     { to: "/history", label: t("history"), icon: History },
+    { to: "/mcp", label: t("mcpServer"), icon: Server },
   ];
 
   useEffect(() => {

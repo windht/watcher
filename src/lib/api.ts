@@ -6,6 +6,7 @@ import type {
   HistoryEntry,
   HttpExecutionResult,
   MoveNodeInput,
+  McpServerStatus,
   TabSession,
   TreeNode,
   Workspace,
@@ -67,6 +68,7 @@ const fallbackState: {
     language: "en-US",
     checkForUpdates: true,
     expandedNodeIds: [],
+    mcpServerPort: 11532,
   },
 };
 
@@ -266,6 +268,31 @@ export const api = {
       return;
     }
     return command<void>("update_settings", { settings });
+  },
+
+  async getMcpServerStatus() {
+    if (!isTauriRuntime()) {
+      return {
+        running: false,
+        port: fallbackState.settings.mcpServerPort,
+        endpoint: `http://127.0.0.1:${fallbackState.settings.mcpServerPort}/mcp`,
+        lastError: "The MCP server runs in the Watcher desktop app.",
+      } satisfies McpServerStatus;
+    }
+    return command<McpServerStatus>("get_mcp_server_status");
+  },
+
+  async setMcpServerPort(port: number) {
+    if (!isTauriRuntime()) {
+      fallbackState.settings.mcpServerPort = port;
+      return {
+        running: false,
+        port,
+        endpoint: `http://127.0.0.1:${port}/mcp`,
+        lastError: "The MCP server runs in the Watcher desktop app.",
+      } satisfies McpServerStatus;
+    }
+    return command<McpServerStatus>("set_mcp_server_port", { port });
   },
 
   async importItems(workspaceId: string, nodes: TreeNode[], requests: ApiRequest[]) {

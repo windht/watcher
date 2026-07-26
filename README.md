@@ -10,13 +10,15 @@
 
 Watcher gives people and coding agents the same API-management capabilities. Use the desktop UI, connect an MCP client, or open the built-in assistant popover to manage workspaces, folders, and requests; send one request or a list; and inspect every execution in the same local History.
 
-The built-in MCP server starts with Watcher at:
+The built-in MCP server starts with Watcher at the default address:
 
 ```text
 http://127.0.0.1:11532/mcp
 ```
 
 It exposes workspace, folder, and request CRUD plus `send_request` and `send_requests`. HTTP executions made through MCP use Watcher's local environment variables and are recorded in History.
+
+Open the dedicated **MCP Server** page in Watcher to see live status, change the localhost port, copy the endpoint, or copy a paste-ready setup prompt and generic client configuration.
 
 The assistant uses assistant-ui with AI SDK v7 and any OpenAI-compatible provider you configure in Settings. If an endpoint returns 401/403, Watcher renders a private credential form inside the tool message. The credential is stored as a local environment value, the saved request sees only a `{{PLACEHOLDER}}`, and the value never enters assistant model context or tool output.
 

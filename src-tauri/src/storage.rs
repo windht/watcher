@@ -122,6 +122,7 @@ fn seed(connection: &Connection) -> Result<(), Box<dyn std::error::Error>> {
       language: "en-US".into(),
       check_for_updates: true,
       expanded_node_ids: Vec::new(),
+      mcp_server_port: crate::mcp::DEFAULT_MCP_SERVER_PORT,
     };
     write_settings(connection, &settings).map_err(std::io::Error::other)?;
   }

@@ -1,6 +1,6 @@
 {
   "name": "watcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "A local-first desktop API client built with Tauri.",
   "license": "UNLICENSED",

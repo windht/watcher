@@ -401,6 +401,42 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .settings-copy p { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0; max-width: 50ch; }
 .settings-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .field-label { font-size: 12px; font-weight: 650; color: var(--muted); }
+.mcp-page { display: flex; flex-direction: column; gap: 16px; }
+.mcp-hero {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  padding: 18px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: 12px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface));
+}
+.mcp-hero-icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 11px; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.mcp-eyebrow { display: block; margin-bottom: 4px; color: var(--accent); font: 700 10px "JetBrains Mono", monospace; letter-spacing: .12em; }
+.mcp-hero h2, .mcp-card h3 { margin: 0; }
+.mcp-hero h2 { font-size: 17px; }
+.mcp-hero p, .mcp-card-heading p, .mcp-help { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.mcp-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); gap: 16px; }
+.mcp-card { padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+.mcp-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.mcp-card h3 { font-size: 14px; }
+.mcp-status-dot { width: 9px; height: 9px; flex: none; margin-top: 3px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 12%, transparent); }
+.mcp-status-dot.running { background: var(--success); box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 12%, transparent); }
+.mcp-copy-box { min-height: 42px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--canvas); }
+.mcp-copy-box code { min-width: 0; flex: 1; overflow: hidden; color: var(--text); font: 12px "JetBrains Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.mcp-copy-box button { width: 31px; height: 31px; display: grid; place-items: center; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; }
+.mcp-copy-box button:hover { color: var(--text); background: var(--selected); }
+.mcp-port-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.mcp-port-row .input { min-width: 0; }
+.mcp-error, .mcp-notice { padding: 9px 11px; border-radius: 7px; font-size: 12px; }
+.mcp-error { margin-top: 11px; color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.mcp-capabilities { display: grid; gap: 11px; }
+.mcp-capabilities > div { display: flex; align-items: flex-start; gap: 9px; }
+.mcp-capabilities svg { margin-top: 2px; color: var(--success); }
+.mcp-capabilities span { display: grid; gap: 2px; }
+.mcp-capabilities strong { font-size: 12px; }
+.mcp-capabilities small { color: var(--muted); font-size: 11px; }
+.mcp-paste-card pre { margin: 0; padding: 13px; overflow: auto; white-space: pre-wrap; border-radius: 8px; color: var(--text); background: var(--canvas); font: 11px/1.55 "JetBrains Mono", monospace; }
+.mcp-notice { position: sticky; bottom: 14px; align-self: center; color: var(--text); border: 1px solid var(--line); background: var(--surface-2); box-shadow: 0 8px 24px var(--shadow); }
+@media (max-width: 900px) {
+  .mcp-grid { grid-template-columns: 1fr; }
+}
 .environment-table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); }
 .environment-table th { text-align: left; color: var(--muted); font-size: 12px; height: 34px; padding: 0 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .environment-table td { border-bottom: 1px solid var(--line-soft); padding: 0; }

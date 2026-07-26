@@ -1,4 +1,12 @@
-use std::{collections::HashMap, thread, time::Instant};
+use std::{
+  collections::HashMap,
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+  },
+  thread::{self, JoinHandle},
+  time::{Duration, Instant},
+};
 
 use reqwest::blocking::Client;
 use rusqlite::{OptionalExtension, params};
@@ -9,28 +17,138 @@ use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
 use crate::{
   models::{
-    ApiRequest, CreatedRequest, HttpExecutionResult, KeyValueRow, RequestBody, TreeNode, Workspace,
+    ApiRequest, CreatedRequest, HttpExecutionResult, KeyValueRow, McpServerStatus, RequestBody,
+    TreeNode, Workspace,
   },
   storage::{self, AppState},
 };
 
-pub const MCP_SERVER_PORT: u16 = 11532;
-pub const MCP_SERVER_ENDPOINT: &str = "http://127.0.0.1:11532/mcp";
+pub const DEFAULT_MCP_SERVER_PORT: u16 = 11532;
 const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
 
-pub fn start(app: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-  let server = Server::http(("127.0.0.1", MCP_SERVER_PORT)).map_err(|error| {
-    format!("failed to bind Watcher MCP server on port {MCP_SERVER_PORT}: {error}")
-  })?;
-  thread::spawn(move || {
-    for request in server.incoming_requests() {
-      handle_request(request, &app);
-    }
-  });
-  Ok(())
+pub struct McpServerManager {
+  state: Arc<Mutex<RuntimeState>>,
+  control: Mutex<Option<ServerControl>>,
 }
 
-fn handle_request(mut request: Request, app: &AppHandle) {
+struct RuntimeState {
+  running: bool,
+  port: u16,
+  last_error: Option<String>,
+}
+
+struct ServerControl {
+  stop: Arc<AtomicBool>,
+  join: JoinHandle<()>,
+}
+
+impl McpServerManager {
+  pub fn new(port: u16) -> Self {
+    Self {
+      state: Arc::new(Mutex::new(RuntimeState {
+        running: false,
+        port,
+        last_error: None,
+      })),
+      control: Mutex::new(None),
+    }
+  }
+
+  pub fn start(&self, app: AppHandle, port: u16) -> Result<(), String> {
+    let server = match Server::http(("127.0.0.1", port)) {
+      Ok(server) => server,
+      Err(error) => {
+        let message = format!("Could not bind the Watcher MCP server to port {port}: {error}");
+        let mut state = self.state.lock().expect("MCP runtime state lock poisoned");
+        state.running = false;
+        state.port = port;
+        state.last_error = Some(message.clone());
+        return Err(message);
+      }
+    };
+    let stop = Arc::new(AtomicBool::new(false));
+    let thread_stop = stop.clone();
+    let runtime = self.state.clone();
+    let join = thread::spawn(move || run_server(server, app, port, thread_stop, runtime));
+    *self.control.lock().expect("MCP control lock poisoned") = Some(ServerControl { stop, join });
+    let mut state = self.state.lock().expect("MCP runtime state lock poisoned");
+    state.running = true;
+    state.port = port;
+    state.last_error = None;
+    Ok(())
+  }
+
+  pub fn restart(&self, app: AppHandle, port: u16) -> Result<McpServerStatus, String> {
+    let previous_port = self.status().port;
+    if previous_port == port && self.status().running {
+      return Ok(self.status());
+    }
+    self.stop();
+    if let Err(error) = self.start(app.clone(), port) {
+      let _ = self.start(app, previous_port);
+      return Err(error);
+    }
+    Ok(self.status())
+  }
+
+  pub fn status(&self) -> McpServerStatus {
+    let state = self.state.lock().expect("MCP runtime state lock poisoned");
+    McpServerStatus {
+      running: state.running,
+      port: state.port,
+      endpoint: endpoint(state.port),
+      last_error: state.last_error.clone(),
+    }
+  }
+
+  fn stop(&self) {
+    let control = self
+      .control
+      .lock()
+      .expect("MCP control lock poisoned")
+      .take();
+    if let Some(control) = control {
+      control.stop.store(true, Ordering::SeqCst);
+      let _ = control.join.join();
+    }
+    self
+      .state
+      .lock()
+      .expect("MCP runtime state lock poisoned")
+      .running = false;
+  }
+}
+
+fn endpoint(port: u16) -> String {
+  format!("http://127.0.0.1:{port}/mcp")
+}
+
+fn run_server(
+  server: Server,
+  app: AppHandle,
+  port: u16,
+  stop: Arc<AtomicBool>,
+  runtime: Arc<Mutex<RuntimeState>>,
+) {
+  while !stop.load(Ordering::SeqCst) {
+    match server.recv_timeout(Duration::from_millis(200)) {
+      Ok(Some(request)) => handle_request(request, &app, port),
+      Ok(None) => {}
+      Err(error) => {
+        let mut state = runtime.lock().expect("MCP runtime state lock poisoned");
+        state.running = false;
+        state.last_error = Some(format!("Watcher MCP server stopped unexpectedly: {error}"));
+        break;
+      }
+    }
+  }
+  runtime
+    .lock()
+    .expect("MCP runtime state lock poisoned")
+    .running = false;
+}
+
+fn handle_request(mut request: Request, app: &AppHandle, port: u16) {
   if !origin_allowed(&request) {
     let _ = request.respond(json_response(
       StatusCode(403),
@@ -48,7 +166,7 @@ fn handle_request(mut request: Request, app: &AppHandle) {
       json!({
         "name": "watcher",
         "version": env!("CARGO_PKG_VERSION"),
-        "endpoint": MCP_SERVER_ENDPOINT,
+        "endpoint": endpoint(port),
         "transport": "streamable-http"
       }),
     ),

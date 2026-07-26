@@ -130,6 +130,21 @@ pub struct AppSettings {
   pub language: String,
   pub check_for_updates: bool,
   pub expanded_node_ids: Vec<String>,
+  #[serde(default = "default_mcp_server_port")]
+  pub mcp_server_port: u16,
+}
+
+fn default_mcp_server_port() -> u16 {
+  crate::mcp::DEFAULT_MCP_SERVER_PORT
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpServerStatus {
+  pub running: bool,
+  pub port: u16,
+  pub endpoint: String,
+  pub last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

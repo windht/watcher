@@ -92,6 +92,14 @@ export interface AppSettings {
   language: Language;
   checkForUpdates: boolean;
   expandedNodeIds: string[];
+  mcpServerPort: number;
+}
+
+export interface McpServerStatus {
+  running: boolean;
+  port: number;
+  endpoint: string;
+  lastError?: string;
 }
 
 export interface WorkspaceSnapshot {

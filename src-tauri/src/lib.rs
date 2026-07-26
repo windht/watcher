@@ -4,7 +4,7 @@ mod storage;
 
 use models::{
   ApiRequest, AppSettings, CreatedRequest, EnvironmentVariable, HistoryEntry, HttpExecutionResult,
-  MoveNodeInput, TabSession, TreeNode, Workspace, WorkspaceSnapshot,
+  McpServerStatus, MoveNodeInput, TabSession, TreeNode, Workspace, WorkspaceSnapshot,
 };
 use rusqlite::{OptionalExtension, params};
 use storage::{AppState, now_ms};
@@ -500,6 +500,30 @@ fn update_settings(state: tauri::State<'_, AppState>, settings: AppSettings) -> 
 }
 
 #[tauri::command]
+fn get_mcp_server_status(manager: tauri::State<'_, mcp::McpServerManager>) -> McpServerStatus {
+  manager.status()
+}
+
+#[tauri::command]
+fn set_mcp_server_port(
+  app: tauri::AppHandle,
+  state: tauri::State<'_, AppState>,
+  manager: tauri::State<'_, mcp::McpServerManager>,
+  port: u16,
+) -> CommandResult<McpServerStatus> {
+  if port < 1024 {
+    return Err("Choose a port between 1024 and 65535.".into());
+  }
+  let status = manager.restart(app, port)?;
+  state.with_connection(|connection| {
+    let mut settings = storage::read_settings(connection)?;
+    settings.mcp_server_port = port;
+    storage::write_settings(connection, &settings)
+  })?;
+  Ok(status)
+}
+
+#[tauri::command]
 fn import_items(
   state: tauri::State<'_, AppState>,
   workspace_id: String,
@@ -534,10 +558,17 @@ pub fn run() {
     .plugin(tauri_plugin_updater::Builder::new().build())
     .setup(|app| {
       let app_data = app.path().app_data_dir()?;
-      app.manage(AppState::open(&app_data)?);
-      if let Err(error) = mcp::start(app.handle().clone()) {
+      let state = AppState::open(&app_data)?;
+      let port = state
+        .with_connection(|connection| storage::read_settings(connection))
+        .map_err(std::io::Error::other)?
+        .mcp_server_port;
+      app.manage(state);
+      let manager = mcp::McpServerManager::new(port);
+      if let Err(error) = manager.start(app.handle().clone(), port) {
         eprintln!("Watcher MCP server did not start: {error}");
       }
+      app.manage(manager);
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -557,6 +588,8 @@ pub fn run() {
       list_history,
       clear_history,
       update_settings,
+      get_mcp_server_status,
+      set_mcp_server_port,
       import_items,
     ])
     .run(tauri::generate_context!())
