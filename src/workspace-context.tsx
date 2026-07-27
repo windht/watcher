@@ -9,12 +9,12 @@ import {
 import { useNavigate } from "react-router-dom";
 import { api } from "./lib/api";
 import { createId } from "./lib/utils";
-import type { ApiRequest, TabSession, WorkspaceSnapshot } from "./types";
+import type { ApiRequest, TabSession, TreeNode, WorkspaceSnapshot } from "./types";
 
 interface WorkspaceContextValue {
   snapshot: WorkspaceSnapshot;
   refresh: () => Promise<void>;
-  openRequest: (request: ApiRequest) => Promise<void>;
+  openRequest: (request: ApiRequest, node?: TreeNode) => Promise<void>;
   closeTab: (tabId: string) => Promise<void>;
   setTabs: (tabs: TabSession[], selectedTabId: string | null) => Promise<void>;
 }
@@ -37,24 +37,24 @@ export function WorkspaceProvider({
 
   const setTabs = useCallback(
     async (tabs: TabSession[], selectedTabId: string | null) => {
-      await api.saveTabs(snapshot.selectedWorkspaceId, tabs, selectedTabId);
-      queryClient.setQueryData<WorkspaceSnapshot>(["snapshot"], (current) =>
-        current
-          ? { ...current, tabs, selectedTabId }
-          : current,
+      const current = queryClient.getQueryData<WorkspaceSnapshot>(["snapshot"]) ?? snapshot;
+      await api.saveTabs(current.selectedWorkspaceId, tabs, selectedTabId);
+      queryClient.setQueryData<WorkspaceSnapshot>(["snapshot"], (value) =>
+        value ? { ...value, tabs, selectedTabId } : value,
       );
     },
-    [queryClient, snapshot.selectedWorkspaceId],
+    [queryClient, snapshot],
   );
 
   const openRequest = useCallback(
-    async (request: ApiRequest) => {
-      let tab = snapshot.tabs.find((item) => item.requestId === request.id);
-      let tabs = snapshot.tabs;
+    async (request: ApiRequest, node?: TreeNode) => {
+      const current = queryClient.getQueryData<WorkspaceSnapshot>(["snapshot"]) ?? snapshot;
+      let tab = current.tabs.find((item) => item.requestId === request.id);
+      let tabs = current.tabs;
       if (!tab) {
         tab = {
           id: createId("tab"),
-          workspaceId: snapshot.selectedWorkspaceId,
+          workspaceId: current.selectedWorkspaceId,
           requestId: request.id,
           order: tabs.length,
           draft: structuredClone(request),
@@ -62,21 +62,32 @@ export function WorkspaceProvider({
         };
         tabs = [...tabs, tab];
       }
-      await setTabs(tabs, tab.id);
+      await api.saveTabs(current.selectedWorkspaceId, tabs, tab.id);
+      queryClient.setQueryData<WorkspaceSnapshot>(["snapshot"], (value) => {
+        if (!value) return value;
+        return {
+          ...value,
+          nodes: node && !value.nodes.some((item) => item.id === node.id) ? [...value.nodes, node] : value.nodes,
+          requests: value.requests.some((item) => item.id === request.id) ? value.requests : [...value.requests, request],
+          tabs,
+          selectedTabId: tab.id,
+        };
+      });
       navigate(`/requests/${request.id}`);
     },
-    [navigate, setTabs, snapshot.selectedWorkspaceId, snapshot.tabs],
+    [navigate, queryClient, snapshot],
   );
 
   const closeTab = useCallback(
     async (tabId: string) => {
-      const index = snapshot.tabs.findIndex((item) => item.id === tabId);
-      const tabs = snapshot.tabs.filter((item) => item.id !== tabId).map((item, order) => ({ ...item, order }));
+      const current = queryClient.getQueryData<WorkspaceSnapshot>(["snapshot"]) ?? snapshot;
+      const index = current.tabs.findIndex((item) => item.id === tabId);
+      const tabs = current.tabs.filter((item) => item.id !== tabId).map((item, order) => ({ ...item, order }));
       const nextTab = tabs[Math.max(0, index - 1)] ?? tabs[0] ?? null;
       await setTabs(tabs, nextTab?.id ?? null);
       navigate(nextTab ? `/requests/${nextTab.requestId}` : "/requests");
     },
-    [navigate, setTabs, snapshot.tabs],
+    [navigate, queryClient, setTabs, snapshot],
   );
 
   const value = useMemo(

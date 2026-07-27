@@ -27,7 +27,7 @@ export function RequestsPage() {
 
   const createRootRequest = async () => {
     const result = await api.createRequest(snapshot.selectedWorkspaceId, null);
-    await openRequest(result.request);
+    await openRequest(result.request, result.node);
   };
 
   return (

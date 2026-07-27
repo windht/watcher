@@ -78,6 +78,14 @@ async function sendSavedRequest(requestId: string) {
 
 export function createWatcherTools() {
   return {
+    name_the_thread: tool({
+      description: "Set a useful local title for the current assistant conversation.",
+      inputSchema: zodSchema(z.object({ name: z.string().trim().min(1).max(80) })),
+      execute: async ({ name }) => {
+        window.dispatchEvent(new CustomEvent("watcher:assistant-thread-renamed", { detail: { name } }));
+        return { name };
+      },
+    }),
     list_workspaces: tool({
       description: "List Watcher workspaces.",
       inputSchema: zodSchema(z.object({})),

@@ -16,7 +16,7 @@ export function WatcherAssistant() {
     window.addEventListener(ASSISTANT_SETTINGS_CHANGED, reload);
     return () => window.removeEventListener(ASSISTANT_SETTINGS_CHANGED, reload);
   }, []);
-  if (!isAssistantConfigured(settings)) return null;
+  if (!isAssistantConfigured(settings)) return <AssistantModal configured={false} settings={settings} />;
   return <ConfiguredAssistant key={settingsKey(settings)} settings={settings} />;
 }
 
@@ -24,7 +24,7 @@ function ConfiguredAssistant({ settings }: { settings: AssistantSettings }) {
   const runtime = useWatcherAssistantRuntime(settings);
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <AssistantModal />
+      <AssistantModal configured />
     </AssistantRuntimeProvider>
   );
 }
@@ -32,4 +32,3 @@ function ConfiguredAssistant({ settings }: { settings: AssistantSettings }) {
 function settingsKey(settings: AssistantSettings) {
   return `${settings.baseUrl}\u0000${settings.model}\u0000${settings.apiKey}`;
 }
-

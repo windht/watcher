@@ -121,6 +121,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .assistant-modal > header span { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .16em; }
 .assistant-modal > header strong { font-size: 14px; }
 .assistant-modal > header small { color: var(--muted); font-size: 11px; }
+.assistant-header-right { align-items: center !important; gap: 10px !important; }
+.assistant-header-button { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; }
+.assistant-header-button:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.assistant-modal-body { min-height: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); }
+.assistant-thread-list { min-width: 0; display: grid; grid-template-rows: 42px minmax(0, 1fr); border-right: 1px solid var(--line); background: var(--surface-2); }
+.assistant-thread-list-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 13px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.assistant-thread-new { width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; }
+.assistant-thread-new:hover { color: var(--text); background: var(--selected); }
+.assistant-thread-items { min-height: 0; overflow-y: auto; padding: 7px; }
+.assistant-thread-item { width: 100%; min-height: 34px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; text-align: left; font-size: 11px; cursor: pointer; }
+.assistant-thread-item:hover, .assistant-thread-item.active { color: var(--text); background: var(--selected); }
+.assistant-thread-item.active { box-shadow: inset 2px 0 var(--accent); }
+.assistant-thread-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.assistant-thread-empty { display: block; padding: 10px 7px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.assistant-setup { min-height: 0; overflow: auto; max-width: 430px; margin: auto; padding: 28px 26px; }
+.assistant-setup-icon { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 14px; border-radius: 12px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.assistant-setup h3 { margin: 0; font-size: 17px; }
+.assistant-setup > p { margin: 7px 0 18px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.assistant-setup label { display: grid; gap: 6px; margin-top: 12px; color: var(--muted); font-size: 11px; font-weight: 650; }
+.assistant-setup .input { height: 36px; }
+.assistant-setup-save { margin-top: 17px; }
+.assistant-setup-error { color: var(--danger) !important; }
 .assistant-thread { min-height: 0; height: 100%; background: var(--surface); }
 .assistant-viewport { height: 100%; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; padding: 18px 20px 0; }
 .assistant-messages { width: 100%; max-width: 610px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; padding-bottom: 18px; }
@@ -282,7 +304,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .dirty-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
 .tab-close { width: 22px; height: 22px; border: 0; background: transparent; border-radius: 5px; color: var(--muted); padding: 0; display: grid; place-items: center; }
 .tab-close:hover { background: var(--selected); color: var(--text); }
-.collapse-control { border-left: 1px solid var(--line); border-radius: 0; height: 37px; width: 40px; flex: none; }
+.collapse-control { position: sticky; left: 0; z-index: 2; border-right: 1px solid var(--line); border-left: 0; border-radius: 0; height: 37px; width: 40px; flex: none; background: var(--surface); }
 
 .request-editor { min-height: 0; display: grid; grid-template-rows: auto auto minmax(0, 1fr); }
 .request-title-row { padding: 12px 18px 8px; }

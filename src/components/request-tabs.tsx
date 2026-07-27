@@ -12,7 +12,7 @@ export function RequestTabs() {
 
   const createDummyTab = async () => {
     const result = await api.createRequest(snapshot.selectedWorkspaceId, null);
-    await openRequest(result.request);
+    await openRequest(result.request, result.node);
   };
 
   return (
@@ -23,6 +23,9 @@ export function RequestTabs() {
         void createDummyTab();
       }}
     >
+      <Button className="collapse-control" size="icon" variant="ghost" onClick={toggleCollection} title={collapsed ? "Show collections" : "Hide collections"}>
+        {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+      </Button>
       {snapshot.tabs.map((tab) => (
         <NavLink key={tab.id} to={`/requests/${tab.requestId}`} className="request-tab">
           <span className={`tree-method method-${tab.draft.method.toLowerCase()}`}>{tab.draft.method.slice(0, 6)}</span>
@@ -49,9 +52,6 @@ export function RequestTabs() {
           void createDummyTab();
         }}
       />
-      <Button className="collapse-control" size="icon" variant="ghost" onClick={toggleCollection} title={collapsed ? "Show collections" : "Hide collections"}>
-        {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-      </Button>
     </div>
   );
 }
