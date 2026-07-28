@@ -2,6 +2,8 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { DirectChatTransport, ToolLoopAgent, type InferAgentUIMessage } from "ai";
 import type { AssistantSettings } from "./settings";
 import { createWatcherTools } from "./tools";
+import { fetchAssistantRequest } from "./http";
+import { normalizeAssistantBaseUrl } from "./settings";
 
 const instructions = `You are Watcher's built-in API management assistant.
 
@@ -35,8 +37,9 @@ function assistantErrorMessage(error: unknown) {
 export function createAssistantAgent(settings: AssistantSettings) {
   const provider = createOpenAICompatible({
     name: "watcher-provider",
-    baseURL: settings.baseUrl,
+    baseURL: normalizeAssistantBaseUrl(settings.baseUrl),
     apiKey: settings.apiKey,
+    fetch: fetchAssistantRequest,
   });
   return new ToolLoopAgent({
     model: provider(settings.model),

@@ -12,13 +12,20 @@ export const emptyAssistantSettings: AssistantSettings = {
   model: "",
 };
 
+export function normalizeAssistantBaseUrl(value: string) {
+  return value
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/chat\/completions$/i, "");
+}
+
 export function loadAssistantSettings(): AssistantSettings {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored) return emptyAssistantSettings;
     const value = JSON.parse(stored) as Partial<AssistantSettings>;
     return {
-      baseUrl: typeof value.baseUrl === "string" ? value.baseUrl : "",
+      baseUrl: typeof value.baseUrl === "string" ? normalizeAssistantBaseUrl(value.baseUrl) : "",
       apiKey: typeof value.apiKey === "string" ? value.apiKey : "",
       model: typeof value.model === "string" ? value.model : "",
     };
@@ -29,7 +36,7 @@ export function loadAssistantSettings(): AssistantSettings {
 
 export function persistAssistantSettings(settings: AssistantSettings) {
   const normalized = {
-    baseUrl: settings.baseUrl.trim().replace(/\/+$/, ""),
+    baseUrl: normalizeAssistantBaseUrl(settings.baseUrl),
     apiKey: settings.apiKey.trim(),
     model: settings.model.trim(),
   };
@@ -49,4 +56,3 @@ export function isAssistantConfigured(settings: AssistantSettings) {
 }
 
 export const ASSISTANT_SETTINGS_CHANGED = "watcher:assistant-settings-changed";
-

@@ -34,6 +34,7 @@ export function useUpdater() {
     const update = status.update;
     let downloaded = 0;
     let total = 0;
+    setStatus({ state: "downloading", update, progress: 0 });
     try {
       await update.downloadAndInstall((event: DownloadEvent) => {
         if (event.event === "Started") total = event.data.contentLength ?? 0;
@@ -43,6 +44,7 @@ export function useUpdater() {
         }
         if (event.event === "Finished") setStatus({ state: "installing" });
       });
+      setStatus({ state: "installing" });
       await relaunch();
     } catch (error) {
       setStatus({ state: "error", message: error instanceof Error ? error.message : String(error) });

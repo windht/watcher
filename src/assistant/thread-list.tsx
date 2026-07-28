@@ -1,4 +1,4 @@
-import { MessageSquare, Plus } from "lucide-react";
+import { MessageSquare, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useAssistantRuntime, useAuiState } from "@assistant-ui/react";
 
@@ -48,17 +48,33 @@ export function AssistantThreadList() {
         <button type="button" className="assistant-thread-new" onClick={() => void runtime.threads.switchToNewThread()} aria-label="New thread" title="New thread"><Plus size={14} /></button>
       </div>
       <div className="assistant-thread-items">
-        {items.length === 0 ? <span className="assistant-thread-empty">No conversations yet.</span> : items.map((item) => (
-          <button
-            type="button"
-            key={item.id}
-            className={`assistant-thread-item ${item.id === current.id ? "active" : ""}`}
-            onClick={() => item.id === current.id ? undefined : void runtime.threads.switchToThread(item.id)}
-          >
-            <MessageSquare size={13} />
-            <span>{item.title?.trim() || "New Thread"}</span>
-          </button>
-        ))}
+        {items.length === 0 ? <span className="assistant-thread-empty">No conversations yet.</span> : items.map((item) => {
+          const title = item.title?.trim() || "New Thread";
+          return (
+            <div
+              key={item.id}
+              className={`assistant-thread-row ${item.id === current.id ? "active" : ""}`}
+            >
+              <button
+                type="button"
+                className="assistant-thread-item"
+                onClick={() => item.id === current.id ? undefined : void runtime.threads.switchToThread(item.id)}
+              >
+                <MessageSquare size={13} />
+                <span>{title}</span>
+              </button>
+              <button
+                type="button"
+                className="assistant-thread-delete"
+                aria-label={`Delete thread "${title}"`}
+                title="Delete thread"
+                onClick={() => void runtime.threads.getItemById(item.id).delete()}
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </aside>
   );
