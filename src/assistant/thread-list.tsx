@@ -18,7 +18,9 @@ export function AssistantThreadList() {
   const threads = useAuiState((state) => state.threads);
   const current = useAuiState((state) => state.threadListItem);
   const messages = useAuiState((state) => state.thread.messages);
-  const ids = Array.from(new Set([...(threads.threadIds ?? []), ...(threads.newThreadId ? [threads.newThreadId] : []), current.id]));
+  const ids = Array.from(
+    new Set([...(threads.threadIds ?? []), ...(threads.newThreadId ? [threads.newThreadId] : []), current.id]),
+  ).filter((id) => id !== threads.newThreadId || id !== current.id || messages.length > 0);
   const items = ids.map((id) => ({
     id,
     title: id === current.id ? current.title : threads.threadItems.find((item) => item.id === id)?.title,

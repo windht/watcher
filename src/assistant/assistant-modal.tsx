@@ -1,5 +1,5 @@
-import { AssistantModalPrimitive, useAssistantRuntime } from "@assistant-ui/react";
-import { Bot, ChevronDown, Save, Trash2 } from "lucide-react";
+import { AssistantModalPrimitive } from "@assistant-ui/react";
+import { Bot, ChevronDown, Save } from "lucide-react";
 import { useState } from "react";
 import { AssistantThread } from "./thread";
 import { AssistantThreadList } from "./thread-list";
@@ -19,7 +19,6 @@ export function AssistantModal({ configured, settings = emptyAssistantSettings }
           <div><span>WATCHER</span><strong>API Assistant</strong></div>
           <div className="assistant-header-right">
             <small>Local only</small>
-            {configured && <ClearThreadButton />}
           </div>
         </header>
         {configured ? (
@@ -30,25 +29,6 @@ export function AssistantModal({ configured, settings = emptyAssistantSettings }
         ) : <AssistantSetup initial={settings} />}
       </AssistantModalPrimitive.Content>
     </AssistantModalPrimitive.Root>
-  );
-}
-
-function ClearThreadButton() {
-  const runtime = useAssistantRuntime();
-  return (
-    <button
-      type="button"
-      className="assistant-header-button"
-      aria-label="Clear conversation"
-      title="Clear conversation"
-      onClick={() => {
-        runtime.thread.cancelRun();
-        runtime.thread.reset();
-        void runtime.threads.mainItem.rename("New Thread").catch(() => undefined);
-      }}
-    >
-      <Trash2 size={14} />
-    </button>
   );
 }
 

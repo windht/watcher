@@ -122,8 +122,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .assistant-modal > header strong { font-size: 14px; }
 .assistant-modal > header small { color: var(--muted); font-size: 11px; }
 .assistant-header-right { align-items: center !important; gap: 10px !important; }
-.assistant-header-button { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: transparent; cursor: pointer; }
-.assistant-header-button:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
 .assistant-modal-body { min-height: 0; display: grid; grid-template-columns: 180px minmax(0, 1fr); }
 .assistant-thread-list { min-width: 0; display: grid; grid-template-rows: 42px minmax(0, 1fr); border-right: 1px solid var(--line); background: var(--surface-2); }
 .assistant-thread-list-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 13px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
