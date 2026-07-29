@@ -24,40 +24,59 @@ export function substituteVariables(value: string, environment: Record<string, s
   return value.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, key: string) => environment[key] ?? "");
 }
 
-function activeRows(rows: KeyValueRow[], environment: Record<string, string>) {
+export function activeRows(rows: KeyValueRow[], environment: Record<string, string>) {
   return rows.filter((row) => row.active && row.key).map((row) => ({
     key: substituteVariables(row.key, environment),
     value: substituteVariables(row.value, environment),
   }));
 }
 
-export async function executeRequest(
-  request: ApiRequest,
-  variables: EnvironmentVariable[],
-): Promise<HttpExecutionResult> {
-  const environment = environmentMap(variables);
+export function resolvedRequestUrl(request: ApiRequest, environment: Record<string, string>) {
   const url = new URL(substituteVariables(request.url, environment));
   for (const row of activeRows(request.params, environment)) {
     url.searchParams.append(row.key, row.value);
   }
+  return url;
+}
+
+export function resolvedRequestBody(request: ApiRequest, environment: Record<string, string>) {
+  if (request.body.mode === "json" || request.body.mode === "text") {
+    return substituteVariables(request.body.raw, environment);
+  }
+  if (request.body.mode === "form-data") {
+    const form = new FormData();
+    for (const row of activeRows(request.body.formData, environment)) form.append(row.key, row.value);
+    return form;
+  }
+  return undefined;
+}
+
+export async function executeRequest(
+  request: ApiRequest,
+  variables: EnvironmentVariable[],
+): Promise<HttpExecutionResult> {
+  if (request.transport !== "http") {
+    return {
+      status: 0,
+      statusText: "Realtime request",
+      headers: {},
+      body: "",
+      durationMs: 0,
+      sizeBytes: 0,
+      error: "Use the Realtime workspace to connect to SSE and WebSocket requests.",
+    };
+  }
+  const environment = environmentMap(variables);
+  const url = resolvedRequestUrl(request, environment);
 
   const headers = new Headers();
   for (const row of activeRows(request.headers, environment)) {
     headers.append(row.key, row.value);
   }
 
-  let body: BodyInit | undefined;
-  if (request.body.mode === "json" || request.body.mode === "text") {
-    body = substituteVariables(request.body.raw, environment);
-    if (request.body.mode === "json" && !headers.has("content-type")) {
-      headers.set("content-type", "application/json");
-    }
-  } else if (request.body.mode === "form-data") {
-    const form = new FormData();
-    for (const row of activeRows(request.body.formData, environment)) {
-      form.append(row.key, row.value);
-    }
-    body = form;
+  const body = resolvedRequestBody(request, environment);
+  if (request.body.mode === "json" && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
   }
 
   const startedAt = performance.now();

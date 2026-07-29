@@ -20,7 +20,7 @@ It exposes workspace, folder, and request CRUD plus `send_request` and `send_req
 
 Open the dedicated **MCP Server** page in Watcher to see live status, change the localhost port, copy the endpoint, or copy a paste-ready setup prompt and generic client configuration.
 
-The assistant uses assistant-ui with AI SDK v7 and any OpenAI-compatible provider you configure in Settings. If an endpoint returns 401/403, Watcher renders a private credential form inside the tool message. The credential is stored as a local environment value, the saved request sees only a `{{PLACEHOLDER}}`, and the value never enters assistant model context or tool output.
+The assistant uses assistant-ui with AI SDK v7 and any OpenAI-compatible provider you configure in Settings. It can also create, connect, inspect, message, and disconnect saved SSE and WebSocket requests through the same local request model. If an endpoint returns 401/403, Watcher renders a private credential form inside the tool message. The credential is stored as a local environment value, the saved request sees only a `{{PLACEHOLDER}}`, and the value never enters assistant model context or tool output.
 
 ## Why Watcher
 
@@ -31,6 +31,7 @@ Watcher keeps API work on your device. Workspaces, collections, environments, re
 - Nested, searchable request collections with keyboard-accessible drag and drop
 - Persistent workspaces and request tabs with explicit dirty/save state
 - HTTP, HTTPS, headers, query parameters, JSON, text, and form-data bodies
+- Dedicated Realtime workspace for full SSE event streams and interactive WebSocket testing
 - Local environment variables using `{{ variable }}` substitution
 - Constrained pre-request and post-response scripts with a two-second timeout
 - Formatted response body, headers, status, timing, size, and copy actions

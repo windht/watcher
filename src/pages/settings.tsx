@@ -21,7 +21,7 @@ export function SettingsPage() {
   const { snapshot, refresh } = useWorkspace();
   const { t } = useI18n();
   const updater = useUpdater();
-  const [version, setVersion] = useState("1.0.2");
+  const [version, setVersion] = useState("1.0.3");
   const [assistantSettings, setAssistantSettings] = useState<AssistantSettings>(loadAssistantSettings);
   const [assistantNotice, setAssistantNotice] = useState("");
   const availableUpdate =

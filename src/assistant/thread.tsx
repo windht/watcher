@@ -5,12 +5,15 @@ import {
   MessagePrimitive,
   ThreadPrimitive,
   useAuiState,
+  useToolCallElapsed,
   type ToolCallMessagePartComponent,
 } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import { ArrowDown, ArrowUp, Square } from "lucide-react";
 import remarkGfm from "remark-gfm";
+import { DotMatrix } from "../components/assistant-ui/dot-matrix";
 import { CredentialToolUi, credentialRequestFromResult } from "./credential-tool-ui";
+import { formatWorkDuration } from "./work-status";
 
 export function AssistantThread() {
   return (
@@ -66,10 +69,29 @@ const ToolFallback: ToolCallMessagePartComponent = ({ toolName, argsText, result
   const running = status?.type === "running";
   const failed = status?.type === "incomplete";
   const credentialRequest = credentialRequestFromResult(result);
+  const elapsedMs = useToolCallElapsed();
+  const statusLabel = credentialRequest
+    ? "Needs credentials"
+    : running
+      ? "Working"
+      : failed
+        ? "Tool failed"
+        : "Worked";
+  const duration = elapsedMs === undefined ? null : formatWorkDuration(elapsedMs);
   return (
     <div className="assistant-tool">
-      <details open={Boolean(failed || credentialRequest)}>
-        <summary>{running ? "Running" : failed ? "Tool failed" : "Used tool"}: {toolName}</summary>
+      <details open={Boolean(running || failed || credentialRequest)}>
+        <summary className="assistant-tool-summary">
+          <DotMatrix
+            state={running ? "loading" : failed ? "error" : "idle"}
+            label={statusLabel + " " + toolName}
+          />
+          <span className="assistant-tool-summary-copy">
+            <strong>{statusLabel}{duration && " for " + duration}</strong>
+            <code>{toolName}</code>
+          </span>
+        </summary>
+        {running && <p className="assistant-tool-pending">This tool is still working. Output will appear here.</p>}
         {argsText && <pre>{argsText}</pre>}
         {result !== undefined && !credentialRequest && (
           <pre>{typeof result === "string" ? result : JSON.stringify(result, null, 2)}</pre>
@@ -102,4 +124,3 @@ function Composer() {
     </ComposerPrimitive.Root>
   );
 }
-

@@ -2,10 +2,17 @@ import { tool, zodSchema } from "ai";
 import { z } from "zod";
 import { api } from "../lib/api";
 import { executeRequest } from "../lib/request";
-import type { ApiRequest, RequestBody } from "../types";
+import {
+  disconnectRealtime,
+  getRealtimeResponse,
+  sendRealtimeMessage,
+  startRealtimeRequest,
+} from "../lib/realtime";
+import { defaultRealtimeConfig, type ApiRequest, type RequestBody } from "../types";
 import {
   assertSafeToolHeaders,
   redactRequest,
+  redactRealtimeResponse,
   redactResponse,
   suggestedCredentialHeader,
   toolRows,
@@ -24,13 +31,21 @@ const bodySchema = z.object({
   formData: z.array(rowSchema).optional(),
 });
 
+const realtimeSchema = z.object({
+  protocols: z.array(z.string().min(1)).optional(),
+  message: z.string().optional(),
+  messageFormat: z.enum(["text", "json"]).optional(),
+});
+
 const requestFields = {
   name: z.string().min(1).optional(),
+  transport: z.enum(["http", "sse", "websocket"]).optional(),
   method: z.string().min(1).optional(),
   url: z.string().optional(),
   params: z.array(rowSchema).optional(),
   headers: z.array(rowSchema).optional(),
   body: bodySchema.optional(),
+  realtime: realtimeSchema.optional(),
 };
 
 function notifyChanged() {
@@ -56,8 +71,30 @@ function requestBody(value?: z.infer<typeof bodySchema>): RequestBody {
   };
 }
 
+function requestRealtime(
+  value?: z.infer<typeof realtimeSchema>,
+  current = defaultRealtimeConfig(),
+) {
+  return {
+    protocols: value?.protocols ?? current.protocols,
+    message: value?.message ?? current.message,
+    messageFormat: value?.messageFormat ?? current.messageFormat,
+  };
+}
+
 async function sendSavedRequest(requestId: string) {
   const { state, request } = await getRequest(requestId);
+  if (request.transport !== "http") {
+    const response = startRealtimeRequest(request, state.environmentVariables);
+    notifyChanged();
+    return {
+      request: redactRequest(request),
+      response: redactRealtimeResponse(response),
+      recordedInHistory: false,
+      live: true,
+      message: `${request.transport === "sse" ? "SSE" : "WebSocket"} connection started. Use get_realtime_events to inspect it, send_realtime_message for WebSockets, or disconnect_realtime when finished.`,
+    };
+  }
   const response = await executeRequest(request, state.environmentVariables);
   await api.recordHistory(request.workspaceId, request, response);
   notifyChanged();
@@ -205,9 +242,11 @@ export function createWatcherTools() {
         name: z.string().min(1),
         method: z.string().min(1),
         url: z.string(),
+        transport: z.enum(["http", "sse", "websocket"]).optional(),
         params: z.array(rowSchema).optional(),
         headers: z.array(rowSchema).optional(),
         body: bodySchema.optional(),
+        realtime: realtimeSchema.optional(),
       })),
       execute: async (input) => {
         assertSafeToolHeaders(input.headers ?? []);
@@ -216,11 +255,13 @@ export function createWatcherTools() {
         const request: ApiRequest = {
           ...created.request,
           name: input.name,
+          transport: input.transport ?? "http",
           method: input.method.toUpperCase(),
           url: input.url,
           params: toolRows(input.params ?? []),
           headers: toolRows(input.headers ?? []),
           body: requestBody(input.body),
+          realtime: requestRealtime(input.realtime),
           updatedAt: Date.now(),
         };
         await api.saveRequest(request);
@@ -238,11 +279,13 @@ export function createWatcherTools() {
         const request: ApiRequest = {
           ...current,
           ...(updates.name !== undefined ? { name: updates.name } : {}),
+          ...(updates.transport !== undefined ? { transport: updates.transport } : {}),
           ...(updates.method !== undefined ? { method: updates.method.toUpperCase() } : {}),
           ...(updates.url !== undefined ? { url: updates.url } : {}),
           ...(updates.params !== undefined ? { params: toolRows(updates.params) } : {}),
           ...(updates.headers !== undefined ? { headers: toolRows(updates.headers) } : {}),
           ...(updates.body !== undefined ? { body: requestBody(updates.body) } : {}),
+          ...(updates.realtime !== undefined ? { realtime: requestRealtime(updates.realtime, current.realtime) } : {}),
           updatedAt: Date.now(),
         };
         await api.saveRequest(request);
@@ -263,17 +306,57 @@ export function createWatcherTools() {
       },
     }),
     send_request: tool({
-      description: "Execute one saved request and record the result in Watcher History.",
+      description: "Execute one saved HTTP request and record it in Watcher History, or start one saved SSE/WebSocket connection for live inspection.",
       inputSchema: zodSchema(z.object({ requestId: z.string() })),
       execute: async ({ requestId }) => sendSavedRequest(requestId),
     }),
     send_requests: tool({
-      description: "Execute saved requests in order and record every result in Watcher History.",
+      description: "Execute saved requests in order. HTTP results are recorded in Watcher History; realtime requests start live desktop connections.",
       inputSchema: zodSchema(z.object({ requestIds: z.array(z.string()).min(1) })),
       execute: async ({ requestIds }) => {
         const results = [];
         for (const requestId of requestIds) results.push(await sendSavedRequest(requestId));
         return results;
+      },
+    }),
+    get_realtime_events: tool({
+      description: "Inspect the live SSE or WebSocket response for a saved realtime request. The desktop Realtime panel retains every event; this tool returns the most recent events so the model stays bounded.",
+      inputSchema: zodSchema(z.object({ requestId: z.string(), limit: z.number().int().min(1).max(500).optional() })),
+      execute: async ({ requestId, limit = 100 }) => {
+        const { request } = await getRequest(requestId);
+        if (request.transport === "http") throw new Error("This is an HTTP request, not a realtime request.");
+        const response = getRealtimeResponse(requestId);
+        if (!response) throw new Error("No live connection exists. Start it with send_request first.");
+        const redacted = redactRealtimeResponse(response);
+        return {
+          request: redactRequest(request),
+          response: {
+            ...redacted,
+            events: redacted.events.slice(-limit),
+          },
+          returnedEvents: Math.min(limit, response.events.length),
+          totalEvents: response.events.length,
+        };
+      },
+    }),
+    send_realtime_message: tool({
+      description: "Send one message through a connected saved WebSocket request. Omit message to send the request's saved realtime message.",
+      inputSchema: zodSchema(z.object({ requestId: z.string(), message: z.string().optional() })),
+      execute: async ({ requestId, message }) => {
+        const { state, request } = await getRequest(requestId);
+        if (request.transport !== "websocket") throw new Error("Only WebSocket requests can send messages.");
+        const response = sendRealtimeMessage(request, state.environmentVariables, message);
+        return { request: redactRequest(request), response: redactRealtimeResponse(response) };
+      },
+    }),
+    disconnect_realtime: tool({
+      description: "Disconnect a live saved SSE or WebSocket request.",
+      inputSchema: zodSchema(z.object({ requestId: z.string() })),
+      execute: async ({ requestId }) => {
+        const { request } = await getRequest(requestId);
+        if (request.transport === "http") throw new Error("This is an HTTP request, not a realtime request.");
+        const response = disconnectRealtime(requestId);
+        return { request: redactRequest(request), response: response ? redactRealtimeResponse(response) : null, disconnected: true };
       },
     }),
   };

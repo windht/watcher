@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AssistantThread } from "./thread";
 import { AssistantThreadList } from "./thread-list";
 import { emptyAssistantSettings, persistAssistantSettings, type AssistantSettings, ASSISTANT_SETTINGS_CHANGED } from "./settings";
+import { AssistantWorkStatus } from "./work-status";
 
 export function AssistantModal({ configured, settings = emptyAssistantSettings }: { configured: boolean; settings?: AssistantSettings }) {
   return (
@@ -18,6 +19,7 @@ export function AssistantModal({ configured, settings = emptyAssistantSettings }
         <header>
           <div><span>WATCHER</span><strong>API Assistant</strong></div>
           <div className="assistant-header-right">
+            {configured && <AssistantWorkStatus />}
             <small>Local only</small>
           </div>
         </header>

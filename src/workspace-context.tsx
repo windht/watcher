@@ -49,6 +49,18 @@ export function WorkspaceProvider({
   const openRequest = useCallback(
     async (request: ApiRequest, node?: TreeNode) => {
       const current = queryClient.getQueryData<WorkspaceSnapshot>(["snapshot"]) ?? snapshot;
+      if (request.transport !== "http") {
+        queryClient.setQueryData<WorkspaceSnapshot>(["snapshot"], (value) => {
+          if (!value) return value;
+          return {
+            ...value,
+            nodes: node && !value.nodes.some((item) => item.id === node.id) ? [...value.nodes, node] : value.nodes,
+            requests: value.requests.some((item) => item.id === request.id) ? value.requests : [...value.requests, request],
+          };
+        });
+        navigate(`/realtime/${request.id}`);
+        return;
+      }
       let tab = current.tabs.find((item) => item.requestId === request.id);
       let tabs = current.tabs;
       if (!tab) {

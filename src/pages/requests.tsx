@@ -1,6 +1,6 @@
 import { FileBraces, Plus } from "lucide-react";
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { CollectionTree } from "../components/collection-tree";
 import { RequestTabs } from "../components/request-tabs";
 import { RequestWorkspace } from "../components/request-workspace";
@@ -24,6 +24,10 @@ export function RequestsPage() {
       if (selected) void openRequest(selected);
     }
   }, [openRequest, requestId, snapshot.requests, snapshot.selectedTabId, snapshot.tabs]);
+
+  if (request && request.transport !== "http") {
+    return <Navigate to={`/realtime/${request.id}`} replace />;
+  }
 
   const createRootRequest = async () => {
     const result = await api.createRequest(snapshot.selectedWorkspaceId, null);

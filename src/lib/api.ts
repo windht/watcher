@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { defaultRealtimeConfig } from "../types";
 import type {
   ApiRequest,
   AppSettings,
@@ -24,6 +25,7 @@ const demoRequest: ApiRequest = {
   id: "request_welcome",
   workspaceId: demoWorkspace.id,
   name: "Echo request",
+  transport: "http",
   method: "GET",
   url: "https://httpbin.org/anything",
   params: [
@@ -31,6 +33,7 @@ const demoRequest: ApiRequest = {
   ],
   headers: [],
   body: { mode: "none", raw: "", formData: [] },
+  realtime: defaultRealtimeConfig(),
   preRequestScript: "",
   postResponseScript: "",
   updatedAt: now,

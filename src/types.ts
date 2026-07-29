@@ -2,6 +2,9 @@ export type ThemeMode = "dark" | "light" | "system";
 export type Language = "en-US" | "zh-CN";
 export type NodeKind = "folder" | "request";
 export type BodyMode = "none" | "json" | "text" | "form-data";
+export type RequestTransport = "http" | "sse" | "websocket";
+export type RealtimeConnectionState = "connecting" | "connected" | "disconnected" | "error";
+export type RealtimeEventDirection = "incoming" | "outgoing" | "system";
 
 export interface Workspace {
   id: string;
@@ -33,15 +36,53 @@ export interface RequestBody {
   formData: KeyValueRow[];
 }
 
+export interface RealtimeConfig {
+  protocols: string[];
+  message: string;
+  messageFormat: "text" | "json";
+}
+
+export interface RealtimeEvent {
+  sequence: number;
+  timestamp: number;
+  direction: RealtimeEventDirection;
+  event: string;
+  data: string;
+  eventId?: string;
+}
+
+export interface RealtimeResponse {
+  transport: Exclude<RequestTransport, "http">;
+  state: RealtimeConnectionState;
+  url: string;
+  status?: number;
+  statusText?: string;
+  headers: Record<string, string>;
+  startedAt: number;
+  connectedAt?: number;
+  endedAt?: number;
+  events: RealtimeEvent[];
+  sizeBytes: number;
+  error?: string;
+}
+
+export const defaultRealtimeConfig = (): RealtimeConfig => ({
+  protocols: [],
+  message: "",
+  messageFormat: "text",
+});
+
 export interface ApiRequest {
   id: string;
   workspaceId: string;
   name: string;
+  transport: RequestTransport;
   method: string;
   url: string;
   params: KeyValueRow[];
   headers: KeyValueRow[];
   body: RequestBody;
+  realtime: RealtimeConfig;
   preRequestScript: string;
   postResponseScript: string;
   updatedAt: number;

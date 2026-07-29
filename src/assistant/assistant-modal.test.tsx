@@ -13,6 +13,11 @@ vi.mock("@assistant-ui/react", () => ({
     thread: { cancelRun: vi.fn(), reset: vi.fn() },
     threads: { mainItem: { rename: vi.fn().mockResolvedValue(undefined) } },
   }),
+  useAuiState: (selector: (state: unknown) => unknown) => selector({
+    thread: { isRunning: false, messages: [] },
+    threadListItem: { id: "thread_test" },
+  }),
+  useAuiEvent: vi.fn(),
 }));
 
 vi.mock("./thread-list", () => ({
@@ -21,6 +26,10 @@ vi.mock("./thread-list", () => ({
 
 vi.mock("./thread", () => ({
   AssistantThread: () => <main>Assistant thread</main>,
+}));
+
+vi.mock("./work-status", () => ({
+  AssistantWorkStatus: () => <span>Assistant work status</span>,
 }));
 
 describe("assistant modal", () => {

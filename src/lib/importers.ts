@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApiRequest, TreeNode } from "../types";
+import { defaultRealtimeConfig, type ApiRequest, type TreeNode } from "../types";
 import { createId } from "./utils";
 
 export interface ImportResult {
@@ -15,11 +15,13 @@ function baseRequest(workspaceId: string, name: string): ApiRequest {
     id: createId("request"),
     workspaceId,
     name,
+    transport: "http",
     method: "GET",
     url: "",
     params: [],
     headers: [],
     body: { mode: "none", raw: "", formData: [] },
+    realtime: defaultRealtimeConfig(),
     preRequestScript: "",
     postResponseScript: "",
     updatedAt: Date.now(),

@@ -17,8 +17,8 @@ use tiny_http::{Header, Method, Request, Response, Server, StatusCode};
 
 use crate::{
   models::{
-    ApiRequest, CreatedRequest, HttpExecutionResult, KeyValueRow, McpServerStatus, RequestBody,
-    TreeNode, Workspace,
+    ApiRequest, CreatedRequest, HttpExecutionResult, KeyValueRow, McpServerStatus, RealtimeConfig,
+    RequestBody, RequestTransport, TreeNode, Workspace,
   },
   storage::{self, AppState},
 };
@@ -206,7 +206,7 @@ fn handle_json_rpc(
         "protocolVersion": MCP_PROTOCOL_VERSION,
         "capabilities": { "tools": {} },
         "serverInfo": { "name": "watcher", "version": env!("CARGO_PKG_VERSION") },
-        "instructions": "Manage and execute Watcher API requests. All executions are recorded in Watcher History. Never pass credential values in tool arguments; use Watcher environment placeholders such as {{API_TOKEN}}."
+        "instructions": "Manage and execute Watcher API requests. HTTP executions are recorded in Watcher History. Requests can use http, sse, or websocket transports. The desktop Realtime workspace and built-in assistant can hold interactive SSE/WebSocket sessions; this MCP endpoint can create, update, and inspect those saved definitions. Never pass credential values in tool arguments; use Watcher environment placeholders such as {{API_TOKEN}}."
       }
     }),
     "notifications/initialized" => return Ok(empty_response(StatusCode(202))),
@@ -343,12 +343,12 @@ fn tool_definitions() -> Vec<Value> {
     ),
     tool(
       "send_request",
-      "Execute one saved request and record its request and response in Watcher History.",
+      "Execute one saved HTTP request and record its request and response in Watcher History. SSE and WebSocket definitions are interactive and must be started from Watcher's desktop Realtime workspace or built-in assistant.",
       object(json!({ "requestId": request_id.clone() }), &["requestId"]),
     ),
     tool(
       "send_requests",
-      "Execute saved requests in order and record every response in Watcher History.",
+      "Execute saved HTTP requests in order and record every response in Watcher History. Realtime definitions are managed here but run interactively in the desktop Realtime workspace or built-in assistant.",
       object(
         json!({
           "requestIds": { "type": "array", "minItems": 1, "items": request_id }
@@ -365,6 +365,7 @@ fn request_input_schema(update: bool) -> Value {
     "parentId": { "type": ["string", "null"] },
     "name": { "type": "string", "minLength": 1 },
     "method": { "type": "string" },
+    "transport": { "type": "string", "enum": ["http", "sse", "websocket"] },
     "url": { "type": "string" },
     "params": { "type": "array", "items": key_value_schema() },
     "headers": { "type": "array", "items": key_value_schema() },
@@ -376,6 +377,15 @@ fn request_input_schema(update: bool) -> Value {
         "formData": { "type": "array", "items": key_value_schema() }
       },
       "required": ["mode"],
+      "additionalProperties": false
+    },
+    "realtime": {
+      "type": "object",
+      "properties": {
+        "protocols": { "type": "array", "items": { "type": "string" } },
+        "message": { "type": "string" },
+        "messageFormat": { "type": "string", "enum": ["text", "json"] }
+      },
       "additionalProperties": false
     }
   });
@@ -644,6 +654,8 @@ fn create_request(state: &AppState, args: RequestInput) -> Result<CreatedRequest
     .ok_or_else(|| "workspaceId is required.".to_string())?;
   let name = required_name(args.name.as_deref().unwrap_or(""), "Request")?;
   validate_headers(args.headers.as_deref().unwrap_or(&[]))?;
+  let transport = request_transport(args.transport.as_deref())?;
+  let realtime = tool_realtime(args.realtime, &RealtimeConfig::default())?;
   state.with_connection(|db| {
     storage::validate_parent(
       db,
@@ -654,11 +666,13 @@ fn create_request(state: &AppState, args: RequestInput) -> Result<CreatedRequest
       id: id("request"),
       workspace_id: workspace_id.clone(),
       name: name.clone(),
+      transport,
       method: args.method.unwrap_or_else(|| "GET".into()).to_uppercase(),
       url: args.url.unwrap_or_default(),
       params: rows(args.params.unwrap_or_default()),
       headers: rows(args.headers.unwrap_or_default()),
       body: args.body.map(tool_body).unwrap_or_else(empty_body),
+      realtime,
       pre_request_script: String::new(),
       post_response_script: String::new(),
       updated_at: storage::now_ms(),
@@ -694,6 +708,9 @@ fn update_request(state: &AppState, args: RequestInput) -> Result<ApiRequest, St
     if let Some(name) = args.name {
       request.name = required_name(&name, "Request")?;
     }
+    if let Some(transport) = args.transport {
+      request.transport = request_transport(Some(&transport))?;
+    }
     if let Some(method) = args.method {
       request.method = method.to_uppercase();
     }
@@ -708,6 +725,9 @@ fn update_request(state: &AppState, args: RequestInput) -> Result<ApiRequest, St
     }
     if let Some(body) = args.body {
       request.body = tool_body(body);
+    }
+    if let Some(realtime) = args.realtime {
+      request.realtime = tool_realtime(Some(realtime), &request.realtime)?;
     }
     request.updated_at = storage::now_ms();
     let transaction = db.unchecked_transaction().map_err(storage::error)?;
@@ -808,6 +828,9 @@ fn delete_node_db(db: &mut rusqlite::Connection, node_id: &str) -> Result<(), St
 
 fn execute_saved_request(state: &AppState, request_id: &str) -> Result<Value, String> {
   let request = load_request(state, request_id)?;
+  if request.transport != RequestTransport::Http {
+    return Err("Realtime requests are interactive. Start this saved SSE or WebSocket request from Watcher's desktop Realtime workspace or built-in assistant.".into());
+  }
   let variables =
     state.with_connection(|db| storage::list_environment(db, &request.workspace_id))?;
   let environment = variables
@@ -1028,6 +1051,35 @@ fn tool_body(body: ToolBody) -> RequestBody {
   }
 }
 
+fn request_transport(value: Option<&str>) -> Result<RequestTransport, String> {
+  match value.unwrap_or("http") {
+    "http" => Ok(RequestTransport::Http),
+    "sse" => Ok(RequestTransport::Sse),
+    "websocket" => Ok(RequestTransport::Websocket),
+    value => Err(format!("Unsupported request transport: {value}")),
+  }
+}
+
+fn tool_realtime(
+  input: Option<ToolRealtimeConfig>,
+  current: &RealtimeConfig,
+) -> Result<RealtimeConfig, String> {
+  let Some(input) = input else {
+    return Ok(current.clone());
+  };
+  let message_format = input
+    .message_format
+    .unwrap_or_else(|| current.message_format.clone());
+  if message_format != "text" && message_format != "json" {
+    return Err("Realtime messageFormat must be text or json.".into());
+  }
+  Ok(RealtimeConfig {
+    protocols: input.protocols.unwrap_or_else(|| current.protocols.clone()),
+    message: input.message.unwrap_or_else(|| current.message.clone()),
+    message_format,
+  })
+}
+
 fn next_position(
   db: &rusqlite::Connection,
   workspace_id: &str,
@@ -1167,14 +1219,23 @@ struct ToolBody {
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct ToolRealtimeConfig {
+  protocols: Option<Vec<String>>,
+  message: Option<String>,
+  message_format: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RequestInput {
   request_id: Option<String>,
   workspace_id: Option<String>,
   parent_id: Option<Option<String>>,
   name: Option<String>,
+  transport: Option<String>,
   method: Option<String>,
   url: Option<String>,
   params: Option<Vec<ToolRow>>,
   headers: Option<Vec<ToolRow>>,
   body: Option<ToolBody>,
+  realtime: Option<ToolRealtimeConfig>,
 }

@@ -59,6 +59,12 @@ import { useI18n } from "../i18n";
 const methodClass = (method?: string) =>
   `method-${(method ?? "get").toLowerCase()}`;
 
+function requestMarker(request?: ApiRequest) {
+  if (request?.transport === "sse") return { label: "SSE", className: "transport-sse" };
+  if (request?.transport === "websocket") return { label: "WS", className: "transport-websocket" };
+  return { label: request?.method.slice(0, 6), className: methodClass(request?.method) };
+}
+
 function remappedRows(rows: KeyValueRow[]) {
   return rows.map((row) => ({ ...row, id: createId("row") }));
 }
@@ -140,6 +146,7 @@ function SortableTreeRow({
 }) {
   const { t } = useI18n();
   const sortable = useSortable({ id: node.id });
+  const marker = requestMarker(request);
   return (
     <div
       ref={sortable.setNodeRef}
@@ -178,8 +185,8 @@ function SortableTreeRow({
       ) : (
         <>
           <span className="tree-toggle" />
-          <span className={cn("tree-method", methodClass(request?.method))}>
-            {request?.method.slice(0, 6)}
+          <span className={cn("tree-method", marker.className)}>
+            {marker.label}
           </span>
         </>
       )}

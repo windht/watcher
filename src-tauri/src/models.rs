@@ -39,17 +39,60 @@ pub struct RequestBody {
   pub form_data: Vec<KeyValueRow>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RequestTransport {
+  Http,
+  Sse,
+  Websocket,
+}
+
+impl Default for RequestTransport {
+  fn default() -> Self {
+    Self::Http
+  }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RealtimeConfig {
+  #[serde(default)]
+  pub protocols: Vec<String>,
+  #[serde(default)]
+  pub message: String,
+  #[serde(default = "default_realtime_message_format")]
+  pub message_format: String,
+}
+
+impl Default for RealtimeConfig {
+  fn default() -> Self {
+    Self {
+      protocols: Vec::new(),
+      message: String::new(),
+      message_format: default_realtime_message_format(),
+    }
+  }
+}
+
+fn default_realtime_message_format() -> String {
+  "text".into()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiRequest {
   pub id: String,
   pub workspace_id: String,
   pub name: String,
+  #[serde(default)]
+  pub transport: RequestTransport,
   pub method: String,
   pub url: String,
   pub params: Vec<KeyValueRow>,
   pub headers: Vec<KeyValueRow>,
   pub body: RequestBody,
+  #[serde(default)]
+  pub realtime: RealtimeConfig,
   pub pre_request_script: String,
   pub post_response_script: String,
   pub updated_at: i64,
@@ -61,6 +104,7 @@ impl ApiRequest {
       id,
       workspace_id,
       name: "New request".into(),
+      transport: RequestTransport::Http,
       method: "GET".into(),
       url: String::new(),
       params: Vec::new(),
@@ -70,6 +114,7 @@ impl ApiRequest {
         raw: String::new(),
         form_data: Vec::new(),
       },
+      realtime: RealtimeConfig::default(),
       pre_request_script: String::new(),
       post_response_script: String::new(),
       updated_at: crate::storage::now_ms(),
@@ -173,4 +218,32 @@ pub struct MoveNodeInput {
 pub struct CreatedRequest {
   pub node: TreeNode,
   pub request: ApiRequest,
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use serde_json::json;
+
+  #[test]
+  fn legacy_requests_default_to_http_realtime_settings() {
+    let request: ApiRequest = serde_json::from_value(json!({
+      "id": "request_1",
+      "workspaceId": "workspace_1",
+      "name": "Legacy request",
+      "method": "GET",
+      "url": "https://example.com",
+      "params": [],
+      "headers": [],
+      "body": { "mode": "none", "raw": "", "formData": [] },
+      "preRequestScript": "",
+      "postResponseScript": "",
+      "updatedAt": 1
+    }))
+    .unwrap();
+
+    assert_eq!(request.transport, RequestTransport::Http);
+    assert!(request.realtime.protocols.is_empty());
+    assert_eq!(request.realtime.message_format, "text");
+  }
 }

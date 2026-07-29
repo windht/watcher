@@ -1,4 +1,4 @@
-import type { ApiRequest, HttpExecutionResult, KeyValueRow } from "../types";
+import type { ApiRequest, HttpExecutionResult, KeyValueRow, RealtimeResponse } from "../types";
 
 export function isSensitiveHeader(name: string) {
   const normalized = name.toLowerCase().replace(/[-_]/g, "");
@@ -30,6 +30,22 @@ export function redactResponse(response: HttpExecutionResult): HttpExecutionResu
       ]),
     ),
     body: redactJsonText(response.body),
+  };
+}
+
+export function redactRealtimeResponse(response: RealtimeResponse): RealtimeResponse {
+  return {
+    ...response,
+    headers: Object.fromEntries(
+      Object.entries(response.headers).map(([key, value]) => [
+        key,
+        isSensitiveHeader(key) ? "••••••••" : value,
+      ]),
+    ),
+    events: response.events.map((event) => ({
+      ...event,
+      data: redactJsonText(event.data),
+    })),
   };
 }
 

@@ -1,6 +1,7 @@
 import {
   Braces,
   History,
+  Radio,
   Server,
   Settings,
   SlidersHorizontal,
@@ -22,6 +23,7 @@ export function Shell() {
     { to: "/requests", label: t("requests"), icon: Braces },
     { to: "/environment", label: t("environment"), icon: SlidersHorizontal },
     { to: "/history", label: t("history"), icon: History },
+    { to: "/realtime", label: t("realtime"), icon: Radio },
     { to: "/mcp", label: t("mcpServer"), icon: Server },
   ];
 
