@@ -21,7 +21,7 @@ export function SettingsPage() {
   const { snapshot, refresh } = useWorkspace();
   const { t } = useI18n();
   const updater = useUpdater();
-  const [version, setVersion] = useState("1.0.3");
+  const [version, setVersion] = useState("1.0.4");
   const [assistantSettings, setAssistantSettings] = useState<AssistantSettings>(loadAssistantSettings);
   const [assistantNotice, setAssistantNotice] = useState("");
   const availableUpdate =
@@ -91,11 +91,16 @@ export function SettingsPage() {
           <div className="settings-copy"><h2>{t("updates")}</h2><p>{t("updatesDescription")}</p></div>
           <div className="settings-control">
             <label><input type="checkbox" checked={snapshot.settings.checkForUpdates} onChange={(event) => void updateSetting("checkForUpdates", event.target.checked)} /> {t("checkAfterStartup")}</label>
-            <span className={updater.status.state === "error" ? "method-delete" : "muted"}>{updaterText}</span>
+            <span className={updater.status.state === "error" ? "method-delete" : "muted"} aria-live="polite">{updaterText}</span>
             <div style={{ display: "flex", gap: 8 }}>
               <Button disabled={updater.status.state === "checking" || updater.status.state === "downloading" || updater.status.state === "installing"} onClick={() => void updater.checkForUpdate()}><RefreshCw size={14} />{t("checkNow")}</Button>
-              {availableUpdate && <Button variant="primary" onClick={() => window.confirm(`Install Watcher ${availableUpdate.version} and relaunch?`) && void updater.install()}>{t("installRelaunch")}</Button>}
+              {availableUpdate && <Button variant="primary" onClick={() => void updater.install()}>{t("installRelaunch")}</Button>}
             </div>
+            {updater.diagnostics.length > 0 && (
+              <pre className="update-diagnostics" aria-label={t("updateActivity")} aria-live="polite">
+                {updater.diagnostics.map((entry) => entry.message).join("\n")}
+              </pre>
+            )}
           </div>
         </section>
         <section className="settings-section">

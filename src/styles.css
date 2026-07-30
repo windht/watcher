@@ -468,6 +468,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .settings-copy p { font-size: 13px; line-height: 1.45; color: var(--muted); margin: 0; max-width: 50ch; }
 .settings-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .field-label { font-size: 12px; font-weight: 650; color: var(--muted); }
+.update-diagnostics { width: min(100%, 620px); max-height: 128px; margin: 2px 0 0; padding: 9px 10px; overflow: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--canvas); color: var(--muted); font: 11px/1.5 "JetBrains Mono", monospace; white-space: pre-wrap; user-select: text; }
 .mcp-page { display: flex; flex-direction: column; gap: 16px; }
 .mcp-hero {
   display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px;

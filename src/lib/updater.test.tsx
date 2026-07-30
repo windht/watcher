@@ -51,4 +51,18 @@ describe("desktop updater", () => {
     });
     expect(mocks.relaunch).toHaveBeenCalledOnce();
   });
+
+  it("explains why install did not start when no update is available", async () => {
+    const { result } = renderHook(() => useUpdater());
+
+    await act(async () => {
+      await result.current.install();
+    });
+
+    expect(result.current.diagnostics).toEqual([
+      expect.objectContaining({
+        message: "Install was not started because no update is ready. Check for updates again.",
+      }),
+    ]);
+  });
 });

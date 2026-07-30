@@ -5048,7 +5048,7 @@ dependencies = [
 
 [[package]]
 name = "watcher"
-version = "1.0.3"
+version = "1.0.4"
 dependencies = [
  "reqwest 0.12.28",
  "rusqlite",
