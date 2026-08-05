@@ -12,6 +12,7 @@ jobs:
   checks:
     name: Release checks
     runs-on: ubuntu-22.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Validate release tag
@@ -61,11 +62,11 @@ jobs:
             rust-target: x86_64-pc-windows-msvc
             args: --target x86_64-pc-windows-msvc --bundles nsis,msi
           - name: macos-arm64
-            platform: macos-latest
+            platform: macos-15
             rust-target: aarch64-apple-darwin
             args: --target aarch64-apple-darwin --bundles app,dmg
           - name: macos-x64
-            platform: macos-latest
+            platform: macos-15-intel
             rust-target: x86_64-apple-darwin
             args: --target x86_64-apple-darwin --bundles app,dmg
           - name: linux-x64
@@ -73,6 +74,7 @@ jobs:
             rust-target: x86_64-unknown-linux-gnu
             args: --target x86_64-unknown-linux-gnu --bundles appimage,deb
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 15
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
     steps:
@@ -113,7 +115,9 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "${KEYCHAIN_PASSWORD}" build.keychain
           security import certificate.p12 -k build.keychain -P "${APPLE_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" build.keychain
+          security set-keychain-settings -t 21600 -u build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "${KEYCHAIN_PASSWORD}" build.keychain
+          security list-keychain -d user -s build.keychain
           signing_identity="$(security find-identity -v -p codesigning build.keychain | grep 'Developer ID Application' | head -n 1 | sed -E 's/.*\"(.*)\".*/\1/')"
           if [[ -z "${signing_identity}" ]]; then
             echo "No Developer ID Application identity was found."
@@ -123,6 +127,14 @@ jobs:
           echo "APPLE_ID=${APPLE_ID}" >> "${GITHUB_ENV}"
           echo "APPLE_PASSWORD=${APPLE_PASSWORD}" >> "${GITHUB_ENV}"
           echo "APPLE_TEAM_ID=${APPLE_TEAM_ID}" >> "${GITHUB_ENV}"
+      - name: Verify Apple code signing
+        if: startsWith(matrix.name, 'macos-') && env.APPLE_CERTIFICATE != ''
+        run: |
+          trap 'rm -f signing-probe.c signing-probe' EXIT
+          printf 'int main(void) { return 0; }\n' > signing-probe.c
+          clang -o signing-probe signing-probe.c
+          codesign --force --options runtime --sign "${APPLE_SIGNING_IDENTITY}" signing-probe
+          codesign --verify --verbose=2 signing-probe
       - name: Warn when macOS signing is unavailable
         if: startsWith(matrix.name, 'macos-') && env.APPLE_CERTIFICATE == ''
         run: echo "::warning::Apple signing secrets are absent; this macOS artifact will be unsigned and unnotarized."
