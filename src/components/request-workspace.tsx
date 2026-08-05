@@ -4,6 +4,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Check,
+  Code2,
   Clipboard,
   FileBraces,
   Plus,
@@ -11,7 +12,7 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Controller,
   useFieldArray,
@@ -28,6 +29,7 @@ import { z } from "zod";
 import { api } from "../lib/api";
 import { executeRequest, environmentMap } from "../lib/request";
 import { runScript } from "../lib/scripts";
+import { generateSnippet, SNIPPET_LANGUAGES, type SnippetLanguageId } from "../lib/snippets";
 import { createId, formatBytes, prettyBody } from "../lib/utils";
 import { useUiStore } from "../store/ui";
 import type {
@@ -143,65 +145,93 @@ function KeyValueEditor({
 }
 
 function ResponsePanel({
+  request,
   response,
   editorTheme,
 }: {
+  request: ApiRequest;
   response?: HttpExecutionResult;
   editorTheme: "light" | "dark";
 }) {
   const { t, language } = useI18n();
-  const [tab, setTab] = useState<"body" | "headers">("body");
+  const [tab, setTab] = useState<"body" | "headers" | "snippet">("body");
+  const [snippetLanguage, setSnippetLanguage] = useState<SnippetLanguageId>("curl");
   const [copied, setCopied] = useState(false);
-  if (!response) {
-    return (
-      <div className="response-panel">
-        <div className="response-toolbar"><span className="section-tab active">{language === "zh-CN" ? "响应" : "Response"}</span></div>
-        <EmptyState icon={<FileBraces size={19} />} title={t("noResponse")} description={t("noResponseDescription")} />
-      </div>
-    );
-  }
-  const content =
-    tab === "body"
+  const selectedSnippetLanguage = SNIPPET_LANGUAGES.find((item) => item.id === snippetLanguage) ?? SNIPPET_LANGUAGES[0];
+  const snippet = useMemo(() => generateSnippet(request, snippetLanguage), [request, snippetLanguage]);
+  const responseContent = response
+    ? tab === "body"
       ? prettyBody(response.body)
-      : Object.entries(response.headers).map(([key, value]) => `${key}: ${value}`).join("\n");
+      : Object.entries(response.headers).map(([key, value]) => `${key}: ${value}`).join("\n")
+    : "";
+  const content = tab === "snippet" ? snippet : responseContent;
+  const isSnippet = tab === "snippet";
   return (
     <div className="response-panel">
       <div className="response-toolbar">
         <button type="button" className={`section-tab ${tab === "body" ? "active" : ""}`} onClick={() => setTab("body")}>{t("body")}</button>
         <button type="button" className={`section-tab ${tab === "headers" ? "active" : ""}`} onClick={() => setTab("headers")}>{t("headers")}</button>
-        <div className="response-meta">
-          <span className={response.status >= 400 || response.status === 0 ? "method-delete" : "method-get"}>
-            {response.status || "ERR"} {response.statusText}
-          </span>
-          <span>{response.durationMs} ms</span>
-          <span>{formatBytes(response.sizeBytes)}</span>
+        <button type="button" className={`section-tab snippet-tab ${isSnippet ? "active" : ""}`} onClick={() => setTab("snippet")}>
+          <Code2 size={13} aria-hidden />
+          {t("codeSnippet")}
+        </button>
+        {isSnippet ? (
+          <Select value={snippetLanguage} onValueChange={(value) => setSnippetLanguage(value as SnippetLanguageId)}>
+            <SelectTrigger className="snippet-language-select" aria-label={t("snippetLanguage")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SNIPPET_LANGUAGES.map((item) => (
+                <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : response ? (
+          <div className="response-meta">
+            <span className={response.status >= 400 || response.status === 0 ? "method-delete" : "method-get"}>
+              {response.status || "ERR"} {response.statusText}
+            </span>
+            <span>{response.durationMs} ms</span>
+            <span>{formatBytes(response.sizeBytes)}</span>
+          </div>
+        ) : null}
+      </div>
+      {!response && !isSnippet ? (
+        <EmptyState icon={<FileBraces size={19} />} title={t("noResponse")} description={t("noResponseDescription")} />
+      ) : (
+        <div className={`response-body ${isSnippet ? "snippet-response-body" : ""}`}>
+          {isSnippet && (
+            <div className="snippet-heading">
+              <span>{t("generatedCode")}</span>
+              <span>{selectedSnippetLanguage.syntax}</span>
+            </div>
+          )}
+          {!isSnippet && response?.error && <div className="response-error">{response.error}</div>}
+          <Button
+            size="icon"
+            variant="secondary"
+            className="response-copy"
+            title={isSnippet ? t("copyCode") : language === "zh-CN" ? "复制响应" : "Copy response"}
+            aria-label={isSnippet ? t("copyCode") : language === "zh-CN" ? "复制响应" : "Copy response"}
+            onClick={async () => {
+              await navigator.clipboard.writeText(content);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1_200);
+            }}
+          >
+            {copied ? <Check size={14} /> : <Clipboard size={14} />}
+          </Button>
+          <CodeMirror
+            className="code-editor"
+            value={content}
+            height="100%"
+            theme={editorTheme}
+            readOnly
+            basicSetup={{ lineNumbers: true, foldGutter: true }}
+            extensions={tab === "body" ? [json()] : isSnippet && selectedSnippetLanguage.syntax === "javascript" ? [javascript()] : []}
+          />
         </div>
-      </div>
-      <div className="response-body">
-        {response.error && <div className="response-error">{response.error}</div>}
-        <Button
-          size="icon"
-          variant="secondary"
-          className="response-copy"
-          title={language === "zh-CN" ? "复制响应" : "Copy response"}
-          onClick={async () => {
-            await navigator.clipboard.writeText(content);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1_200);
-          }}
-        >
-          {copied ? <Check size={14} /> : <Clipboard size={14} />}
-        </Button>
-        <CodeMirror
-          className="code-editor"
-          value={content}
-          height="100%"
-          theme={editorTheme}
-          readOnly
-          basicSetup={{ lineNumbers: true, foldGutter: true }}
-          extensions={tab === "body" ? [json()] : []}
-        />
-      </div>
+      )}
     </div>
   );
 }
@@ -227,6 +257,7 @@ export function RequestWorkspace({ request }: { request: ApiRequest }) {
     mode: "onChange",
   });
   const { control, register, handleSubmit, watch, reset, formState } = form;
+  const currentRequest = watch();
 
   useEffect(() => {
     const subscription = watch((value) => {
@@ -483,7 +514,7 @@ export function RequestWorkspace({ request }: { request: ApiRequest }) {
           <span className="response-resize-grip" aria-hidden />
         </Separator>
         <Panel id="response" className="response-panel-host" minSize="18%" defaultSize="42%">
-          <ResponsePanel response={responses[request.id]} editorTheme={editorTheme} />
+          <ResponsePanel request={currentRequest} response={responses[request.id]} editorTheme={editorTheme} />
         </Panel>
       </Group>
     </form>
